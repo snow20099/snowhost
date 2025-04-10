@@ -30,7 +30,7 @@ export default function Navbar() {
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <Server className="h-6 w-6 text-blue-600" />
-            <span className="font-bold text-xl">NexusHost</span>
+            <span className="font-bold text-xl">SnowHost</span>
           </Link>
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
@@ -114,7 +114,7 @@ export default function Navbar() {
             <nav className="flex flex-col gap-6">
               <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
                 <Server className="h-6 w-6 text-blue-600" />
-                <span className="font-bold text-xl">NexusHost</span>
+                <span className="font-bold text-xl">SnowHost</span>
               </Link>
               <div className="flex items-center gap-2 mb-2">
                 <SearchDialog />
