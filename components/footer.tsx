@@ -47,7 +47,7 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
               <Server className="h-6 w-6 text-blue-600" />
-              <span className="font-bold text-xl">NexusHost</span>
+              <span className="font-bold text-xl">SnowHost</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Premium hosting solutions for gaming, VPS, VDS, and web hosting with 24/7 support and 99.9% uptime
@@ -159,10 +159,10 @@ export default function Footer() {
               <li className="flex items-start">
                 <Mail className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
                 <a
-                  href="mailto:info@nexushost.com"
+                  href="mailto:info@snowhost.com"
                   className="text-sm text-muted-foreground hover:text-blue-600 transition-colors"
                 >
-                  info@nexushost.com
+                  info@snowhost.com
                 </a>
               </li>
               <li className="flex items-start">
