@@ -54,7 +54,7 @@ export default function SupportPage() {
               description="Send us an email and we'll get back to you within 24 hours."
               icon={<Mail className="h-8 w-8 text-blue-600" />}
               buttonText="Email Us"
-              buttonHref="mailto:support@nexushost.com"
+              buttonHref="mailto:support@snowhost.com"
             />
             <SupportCard
               title="Phone Support"
@@ -304,8 +304,8 @@ export default function SupportPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Email</h3>
                 <p className="text-muted-foreground mb-4">For general inquiries and support</p>
-                <a href="mailto:support@nexushost.com" className="text-blue-600 hover:underline">
-                  support@nexushost.com
+                <a href="mailto:support@snowhost.com" className="text-blue-600 hover:underline">
+                  support@snowhost.com
                 </a>
               </CardContent>
             </Card>
