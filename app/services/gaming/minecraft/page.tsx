@@ -558,7 +558,7 @@ export default function MinecraftHostingPage() {
               {
                 question: "Can I use my own domain name?",
                 answer:
-                  "Yes, you can use your own domain name with our Minecraft hosting. We provide a free subdomain (yourserver.nexushost.com) by default, but you can easily set up your custom domain through our control panel.",
+                  "Yes, you can use your own domain name with our Minecraft hosting. We provide a free subdomain (yourserver.snowhost.cloud) by default, but you can easily set up your custom domain through our control panel.",
               },
               {
                 question: "How often are backups created?",
