@@ -128,7 +128,7 @@ export default function PrivacyPage() {
             </p>
 
             <h2>9. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us at privacy@nexushost.com.</p>
+            <p>If you have any questions about this Privacy Policy, please contact us at privacy@snowhost.com.</p>
           </motion.div>
 
           <div className="flex justify-center mt-12">
