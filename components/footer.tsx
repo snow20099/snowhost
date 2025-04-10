@@ -185,7 +185,7 @@ export default function Footer() {
         {/* Bottom Footer */}
         <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-border/40">
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © {new Date().getFullYear()} NexusHost. All rights reserved.
+            © {new Date().getFullYear()} SnowHost. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/terms" className="text-sm text-muted-foreground hover:text-blue-600 transition-colors">
