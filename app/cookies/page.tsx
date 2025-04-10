@@ -153,7 +153,7 @@ export default function CookiesPage() {
             </p>
 
             <h2>8. Contact Us</h2>
-            <p>If you have any questions about our Cookie Policy, please contact us at privacy@nexushost.com.</p>
+            <p>If you have any questions about our Cookie Policy, please contact us at privacy@snowhost.com.</p>
           </motion.div>
 
           <div className="flex justify-center mt-12">
