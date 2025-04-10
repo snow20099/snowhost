@@ -1,46 +1,86 @@
+// pages/signup.tsx
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+// استبدل أو عدل مسارات واستيرادات المكونات وفق مكتبة الواجهات المستخدمة لديك:
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Server, Github, Mail, Facebook, MessageSquare, ArrowRight, ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState(1)
   const totalSteps = 2
+  const router = useRouter()
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Redirect would happen here in a real app
-    }, 2000)
-  }
-
+  // دالة للتقدم في الخطوات
   const nextStep = (e: React.FormEvent) => {
     e.preventDefault()
     setStep(step + 1)
   }
 
+  // دالة للرجوع للخطوة السابقة
   const prevStep = () => {
     setStep(step - 1)
+  }
+
+  // دالة التسجيل الحقيقية التي تتصل بواجهة API
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    
+    // جمع بيانات النموذج
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+    const confirmPassword = formData.get("confirm-password") as string
+    const firstName = formData.get("first-name") as string
+    const lastName = formData.get("last-name") as string
+    const company = formData.get("company") as string
+
+    // تحقق من تطابق كلمتي المرور (يمكنك تعديل المنطق حسب حاجتك)
+    if (password !== confirmPassword) {
+      alert("Passwords do not match")
+      setIsLoading(false)
+      return
+    }
+
+    const data = { email, password, firstName, lastName, company }
+
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        // يمكنك عرض رسالة الخطأ للمستخدم
+        alert(result.error || "An error occurred")
+      } else {
+        // في حالة نجاح التسجيل، يتم إعادة التوجيه إلى الداشبورد
+        router.push("/dashboard")
+      }
+    } catch (error) {
+      console.error("Error during signup", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 bg-gradient-to-b from-background via-background/95 to-background/90">
       <div className="absolute inset-0 bg-grid-white/5 bg-[size:30px_30px] [mask-image:radial-gradient(white,transparent_70%)]" />
 
-      {/* Animated gradient orbs */}
+      {/* مؤثرات بصرية */}
       <div
         className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse"
         style={{ animationDuration: "8s" }}
@@ -80,13 +120,17 @@ export default function SignupPage() {
                       {Array.from({ length: totalSteps }).map((_, i) => (
                         <div
                           key={i}
-                          className={`h-2 w-10 rounded-full transition-all duration-300 ${i < step ? "bg-blue-600" : "bg-muted"}`}
+                          className={`h-2 w-10 rounded-full transition-all duration-300 ${
+                            i < step ? "bg-blue-600" : "bg-muted"
+                          }`}
                         />
                       ))}
                     </div>
                   </div>
                   <CardDescription>
-                    {step === 1 ? "Create your account to get started" : "Complete your profile"}
+                    {step === 1
+                      ? "Create your account to get started"
+                      : "Complete your profile"}
                   </CardDescription>
                 </CardHeader>
 
@@ -104,6 +148,7 @@ export default function SignupPage() {
                           <Label htmlFor="email">Email</Label>
                           <Input
                             id="email"
+                            name="email"
                             type="email"
                             placeholder="m@example.com"
                             required
@@ -114,6 +159,7 @@ export default function SignupPage() {
                           <Label htmlFor="password">Password</Label>
                           <Input
                             id="password"
+                            name="password"
                             type="password"
                             required
                             className="bg-background/50 border-border/50 focus:border-blue-600"
@@ -123,6 +169,7 @@ export default function SignupPage() {
                           <Label htmlFor="confirm-password">Confirm Password</Label>
                           <Input
                             id="confirm-password"
+                            name="confirm-password"
                             type="password"
                             required
                             className="bg-background/50 border-border/50 focus:border-blue-600"
@@ -146,6 +193,7 @@ export default function SignupPage() {
                             <Label htmlFor="first-name">First name</Label>
                             <Input
                               id="first-name"
+                              name="first-name"
                               placeholder="John"
                               required
                               className="bg-background/50 border-border/50 focus:border-blue-600"
@@ -155,6 +203,7 @@ export default function SignupPage() {
                             <Label htmlFor="last-name">Last name</Label>
                             <Input
                               id="last-name"
+                              name="last-name"
                               placeholder="Doe"
                               required
                               className="bg-background/50 border-border/50 focus:border-blue-600"
@@ -165,12 +214,13 @@ export default function SignupPage() {
                           <Label htmlFor="company">Company (Optional)</Label>
                           <Input
                             id="company"
+                            name="company"
                             placeholder="Acme Inc."
                             className="bg-background/50 border-border/50 focus:border-blue-600"
                           />
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="terms" required />
+                          <Checkbox id="terms" name="terms" required />
                           <Label htmlFor="terms" className="text-sm font-normal">
                             I agree to the{" "}
                             <Link href="/terms" className="text-blue-600 hover:underline">
@@ -183,7 +233,7 @@ export default function SignupPage() {
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="newsletter" />
+                          <Checkbox id="newsletter" name="newsletter" />
                           <Label htmlFor="newsletter" className="text-sm font-normal">
                             Subscribe to our newsletter for updates and offers
                           </Label>
@@ -309,4 +359,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
