@@ -195,8 +195,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Email</h3>
-                      <p className="text-muted-foreground">info@nexushost.com</p>
-                      <p className="text-muted-foreground">support@nexushost.com</p>
+                      <p className="text-muted-foreground">info@snowhost.com</p>
+                      <p className="text-muted-foreground">support@snowhost.com</p>
                     </div>
                   </div>
 
@@ -290,7 +290,7 @@ export default function ContactPage() {
               {
                 question: "Can I schedule a consultation with your team?",
                 answer:
-                  "You can schedule a consultation with our sales or technical team by filling out the contact form or emailing us directly at sales@nexushost.com.",
+                  "You can schedule a consultation with our sales or technical team by filling out the contact form or emailing us directly at sales@snowhost.com.",
               },
               {
                 question: "How do I report a technical issue with my service?",
