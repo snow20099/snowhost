@@ -61,7 +61,7 @@ export default function LiveChatWidget() {
   // Predefined answers for quick questions
   const predefinedAnswers: Record<string, string> = {
     contact:
-      "Our contact address is: 123 Server Street, Cloud City, CC 10101. You can also reach us via email at support@nexushost.com or by phone at +1 (555) 123-4567.",
+      "Our contact address is: 123 Server Street, Cloud City, CC 10101. You can also reach us via email at support@snowhost.com or by phone at +1 (555) 123-4567.",
     price:
       "Our pricing varies based on your needs. Basic plans start at $5.99/month. For gaming servers, Minecraft starts at $8.99/month, CS2 at $12.99/month. Would you like me to provide more specific pricing information for a particular service?",
     agent:
@@ -333,7 +333,7 @@ export default function LiveChatWidget() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium text-sm">NexusHost Support</h3>
+                    <h3 className="font-medium text-sm">SnowHost Support</h3>
                     <p className="text-xs text-muted-foreground">Online</p>
                   </div>
                 </div>
