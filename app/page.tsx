@@ -44,7 +44,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Next-Gen <span className="text-blue-600">Hosting</span> Solutions
+              Snow <span className="text-blue-600">Hosting</span> Solutions
             </motion.h1>
 
             <motion.p
