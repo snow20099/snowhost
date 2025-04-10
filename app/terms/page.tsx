@@ -113,7 +113,7 @@ export default function TermsPage() {
             </p>
 
             <h2>9. Contact Us</h2>
-            <p>If you have any questions about these Terms, please contact us at legal@nexushost.com.</p>
+            <p>If you have any questions about these Terms, please contact us at legal@snowhost.com.</p>
           </motion.div>
 
           <div className="flex justify-center mt-12">
