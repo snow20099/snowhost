@@ -681,7 +681,10 @@ function MinecraftPlanCard({
         </div>
       </CardContent>
       <CardFooter>
-        <Button className={`w-full rounded-full ${popular ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}>
+        <Button
+    className={`w-full rounded-full ${popular ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+    onClick={() => window.open("https://discord.gg/snowhost", "_blank")}
+  >
           Select Plan
         </Button>
       </CardFooter>
