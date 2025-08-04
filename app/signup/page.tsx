@@ -275,6 +275,7 @@ export default function SignupPage() {
                         <Button
                           variant="outline"
                           type="button"
+                          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                           className="bg-background/50 border-border/50 hover:bg-blue-600/10 hover:text-blue-600 transition-all duration-300"
                         >
                           <Mail className="mr-2 h-4 w-4" />
@@ -283,6 +284,7 @@ export default function SignupPage() {
                         <Button
                           variant="outline"
                           type="button"
+                          onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
                           className="bg-background/50 border-border/50 hover:bg-blue-600/10 hover:text-blue-600 transition-all duration-300"
                         >
                           <MessageSquare className="mr-2 h-4 w-4" />
