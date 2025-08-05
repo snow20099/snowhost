@@ -33,19 +33,7 @@ export default function SignupPage() {
     })
     setIsLoading(false)
     if (res.ok) {
-      // هنا رابط التحقق مع كود (الكود راح تولده السيرفر بعد التسجيل عادة)
-      // افترضنا أن الكود تم إنشاؤه على السيرفر ورفعه مع الرد أو تستخدم إيميل فقط
-      const verificationCode = "generated-code-from-server"; // لازم تجيبه من الرد الحقيقي أو طريقة بديلة
-
-      const verificationLink = `https://snowhost.cloud/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}`
-
-      await fetch("/api/auth/send-verification-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, verificationLink }),
-      })
-
-      // تسجيل دخول تلقائي (ممكن تلغيه لو تبغى المستخدم يظل ينتظر التفعيل)
+      // سجل دخول تلقائي بعد التسجيل
       await signIn("credentials", { email, password, callbackUrl: "/dashboard" })
     } else {
       const data = await res.json()
@@ -287,7 +275,6 @@ export default function SignupPage() {
                         <Button
                           variant="outline"
                           type="button"
-                          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                           className="bg-background/50 border-border/50 hover:bg-blue-600/10 hover:text-blue-600 transition-all duration-300"
                         >
                           <Mail className="mr-2 h-4 w-4" />
@@ -296,7 +283,6 @@ export default function SignupPage() {
                         <Button
                           variant="outline"
                           type="button"
-                          onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
                           className="bg-background/50 border-border/50 hover:bg-blue-600/10 hover:text-blue-600 transition-all duration-300"
                         >
                           <MessageSquare className="mr-2 h-4 w-4" />
