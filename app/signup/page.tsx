@@ -37,7 +37,7 @@ export default function SignupPage() {
       // افترضنا أن الكود تم إنشاؤه على السيرفر ورفعه مع الرد أو تستخدم إيميل فقط
       const verificationCode = "generated-code-from-server"; // لازم تجيبه من الرد الحقيقي أو طريقة بديلة
 
-      const verificationLink = `https://yourdomain.com/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}`
+      const verificationLink = `https://snowhost.cloud/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}`
 
       await fetch("/api/auth/send-verification-email", {
         method: "POST",
