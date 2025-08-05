@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     await connectToDatabase()
-    const user = await User.findOne({ email: token.email }).select("-password")
+    const user = await User.findOne({ email: token.email }).select('-password')
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
@@ -44,6 +44,40 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error("Profile API Error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const token = await getToken({ req, secret })
+
+    if (!token?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await req.json()
+    await connectToDatabase()
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email: token.email },
+      {
+        $set: {
+          name: body.name,
+          phone: body.phone,
+          country: body.country,
+          timezone: body.timezone,
+          'preferences.theme': body.theme,
+          'preferences.language': body.language,
+          updatedAt: new Date()
+        }
+      },
+      { new: true }
+    ).select('-password')
+
+    return NextResponse.json(updatedUser)
+  } catch (error) {
+    console.error("Update Profile Error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
