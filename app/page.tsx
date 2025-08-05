@@ -422,7 +422,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               <Image
-                src="/placeholder.svg?height=600&width=800"
+                src="/dedicated-server-feature.webp?height=600&width=800"
                 alt="Server rack visualization"
                 fill
                 className="object-cover"
