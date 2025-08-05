@@ -1,67 +1,77 @@
 "use client"
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Server, Mail, MessageSquare, ArrowLeft, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { signIn } from "next-auth/react";
+import type React from "react"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Server, Mail, MessageSquare, ArrowLeft, ArrowRight } from "lucide-react"
+import Link from "next/link"
+import { motion, AnimatePresence } from "framer-motion"
+import { signIn } from "next-auth/react"
 
 export default function SignupPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false)
+  const [step, setStep] = useState(1)
+  const totalSteps = 2
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    const res = await fetch("/api/auth/signup", {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: fullName, email, password }),
-    });
-
-    setIsLoading(false);
-
+      body: JSON.stringify({ name, email, password }),
+    })
+    setIsLoading(false)
     if (res.ok) {
-      setStep(3); // اظهر خطوة نجاح التسجيل وانتظار التفعيل
+      // سجل دخول تلقائي بعد التسجيل
+      await signIn("credentials", { email, password, callbackUrl: "/dashboard" })
     } else {
-      const data = await res.json();
-      setError(data.message || "Registration failed");
+      const data = await res.json()
+      setError(data.error || "Registration failed")
     }
-  };
+  }
 
   const nextStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep(step + 1);
-  };
+    e.preventDefault()
+    setStep(step + 1)
+  }
 
   const prevStep = () => {
-    setStep(step - 1);
-  };
+    setStep(step - 1)
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 bg-gradient-to-b from-background via-background/95 to-background/90">
       <div className="absolute inset-0 bg-grid-white/5 bg-[size:30px_30px] [mask-image:radial-gradient(white,transparent_70%)]" />
 
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "8s" }} />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "12s" }} />
+      {/* Animated gradient orbs */}
+      <div
+        className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse"
+        style={{ animationDuration: "8s" }}
+      />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"
+        style={{ animationDuration: "12s" }}
+      />
 
       <div className="container px-4 md:px-6 relative z-10">
         <div className="mx-auto grid w-full max-w-md gap-6">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col items-center space-y-2 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center space-y-2 text-center"
+          >
             <div className="flex items-center gap-2">
               <Server className="h-6 w-6 text-blue-600" />
               <span className="font-bold text-xl">SnowHost</span>
@@ -70,7 +80,11 @@ export default function SignupPage() {
             <p className="text-muted-foreground">Sign up to get started with SnowHost</p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
               <form onSubmit={step === totalSteps ? handleSignup : nextStep}>
                 <CardHeader>
@@ -78,16 +92,27 @@ export default function SignupPage() {
                     <CardTitle>Sign Up</CardTitle>
                     <div className="flex items-center space-x-1">
                       {Array.from({ length: totalSteps }).map((_, i) => (
-                        <div key={i} className={`h-2 w-10 rounded-full transition-all duration-300 ${i < step ? "bg-blue-600" : "bg-muted"}`} />
+                        <div
+                          key={i}
+                          className={`h-2 w-10 rounded-full transition-all duration-300 ${i < step ? "bg-blue-600" : "bg-muted"}`}
+                        />
                       ))}
                     </div>
                   </div>
-                  <CardDescription>{step === 1 ? "Create your account to get started" : step === 2 ? "Complete your profile" : "Check your email to verify your account"}</CardDescription>
+                  <CardDescription>
+                    {step === 1 ? "Create your account to get started" : "Complete your profile"}
+                  </CardDescription>
                 </CardHeader>
 
                 <AnimatePresence mode="wait">
                   {step === 1 && (
-                    <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                    <motion.div
+                      key="step1"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <CardContent className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="email">Email</Label>
@@ -127,7 +152,13 @@ export default function SignupPage() {
                   )}
 
                   {step === 2 && (
-                    <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.3 }}>
+                    <motion.div
+                      key="step2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -137,8 +168,8 @@ export default function SignupPage() {
                               placeholder="John"
                               required
                               className="bg-background/50 border-border/50 focus:border-blue-600"
-                              value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
                             />
                           </div>
                           <div className="space-y-2">
@@ -148,14 +179,16 @@ export default function SignupPage() {
                               placeholder="Doe"
                               required
                               className="bg-background/50 border-border/50 focus:border-blue-600"
-                              value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="company">Company (Optional)</Label>
-                          <Input id="company" placeholder="Acme Inc." className="bg-background/50 border-border/50 focus:border-blue-600" />
+                          <Input
+                            id="company"
+                            placeholder="Acme Inc."
+                            className="bg-background/50 border-border/50 focus:border-blue-600"
+                          />
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox id="terms" required />
@@ -179,49 +212,53 @@ export default function SignupPage() {
                       </CardContent>
                     </motion.div>
                   )}
-
-                  {step === 3 && (
-                    <motion.div key="step3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.3 }}>
-                      <CardContent>
-                        <p>تم إنشاء حسابك بنجاح! تم إرسال رسالة التفعيل إلى بريدك الإلكتروني. يرجى التحقق منه قبل تسجيل الدخول.</p>
-                      </CardContent>
-                    </motion.div>
-                  )}
                 </AnimatePresence>
 
                 <CardFooter className="flex flex-col space-y-4">
                   <div className="flex w-full gap-4">
-                    {step > 1 && step < totalSteps && (
-                      <Button type="button" variant="outline" onClick={prevStep} className="flex-1 bg-background/50 border-border/50 rounded-full">
+                    {step > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={prevStep}
+                        className="flex-1 bg-background/50 border-border/50 rounded-full"
+                      >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                       </Button>
                     )}
-                    {step < totalSteps && (
-                      <Button
-                        type="submit"
-                        className={`${step === 1 ? "w-full" : "flex-1"} bg-blue-600 hover:bg-blue-700 text-white rounded-full`}
-                        disabled={isLoading}
-                      >
-                        {step < totalSteps - 1 ? (
-                          <div className="flex items-center justify-center">
-                            Next
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button
+                      type="submit"
+                      className={`${step === 1 ? "w-full" : "flex-1"} bg-blue-600 hover:bg-blue-700 text-white rounded-full`}
+                      disabled={isLoading}
+                    >
+                      {step < totalSteps ? (
+                        <div className="flex items-center justify-center">
+                          Next
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </div>
+                      ) : isLoading ? (
+                        <div className="flex items-center">
+                          <span className="mr-2">Creating account</span>
+                          <div className="flex space-x-1">
+                            <div
+                              className="h-2 w-2 bg-white rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="h-2 w-2 bg-white rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="h-2 w-2 bg-white rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
                           </div>
-                        ) : isLoading ? (
-                          <div className="flex items-center">
-                            <span className="mr-2">Creating account</span>
-                            <div className="flex space-x-1">
-                              <div className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                              <div className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                              <div className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                            </div>
-                          </div>
-                        ) : (
-                          "Create account"
-                        )}
-                      </Button>
-                    )}
+                        </div>
+                      ) : (
+                        "Create account"
+                      )}
+                    </Button>
                   </div>
 
                   {step === 1 && (
@@ -261,7 +298,12 @@ export default function SignupPage() {
             </Card>
           </motion.div>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.8 }} className="text-center text-sm text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+            className="text-center text-sm text-muted-foreground"
+          >
             Already have an account?{" "}
             <Link href="/login" className="text-blue-600 hover:underline">
               Login
@@ -270,5 +312,5 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
