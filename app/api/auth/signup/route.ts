@@ -1,63 +1,70 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import nodemailer from "nodemailer";
 
-export default async function signupHandler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
-
-  const { name, email, password } = req.body;
-  if (!email || !password || !name)
-    return res.status(400).json({ message: "Missing required fields" });
+export async function POST(req: Request) {
+  const { name, email, password } = await req.json();
+  if (!name || !email || !password) {
+    return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+  }
 
   await connectToDatabase();
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) return res.status(400).json({ message: "Email already registered" });
+  const existing = await User.findOne({ email });
+  if (existing) {
+    return NextResponse.json({ error: "User already exists" }, { status: 400 });
+  }
+
+  // توليد كود تحقق عشوائي (مثلاً)
+  const verificationCode = Math.random().toString(36).substring(2, 15);
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const verificationCode = crypto.randomBytes(3).toString("hex"); // 6 chars code
 
-  const newUser = new User({
+  // إنشاء المستخدم مع إضافة حقل التحقق
+  await User.create({
     name,
     email,
     password: hashedPassword,
-    emailVerified: false,
     verificationCode,
+    emailVerified: false,
   });
 
-  await newUser.save();
-
-  // إعداد nodemailer مع متغيرات البيئة
+  // إعداد nodemailer مع بيانات SMTP من env
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
-    secure: false,
+    secure: process.env.SMTP_PORT === "465",
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
 
-  const verifyLink = `${process.env.NEXTAUTH_URL}/verify-email?code=${verificationCode}&email=${email}`;
+  // رابط التفعيل
+  const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/verify-email?code=${verificationCode}&email=${email}`;
 
+  // محتوى الإيميل
+  const mailOptions = {
+    from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+    to: email,
+    subject: "تفعيل حسابك في SnowHost",
+    html: `
+      <p>مرحبًا ${name},</p>
+      <p>شكراً لتسجيلك في SnowHost. يرجى الضغط على الرابط التالي لتفعيل حسابك:</p>
+      <a href="${verificationUrl}">${verificationUrl}</a>
+      <p>إذا لم تطلب هذا، تجاهل هذه الرسالة.</p>
+    `,
+  };
+
+  // إرسال الإيميل (حاول وبعطيك رد حسب النتيجة)
   try {
-    await transporter.sendMail({
-      from: `"SnowHost Panel" <${process.env.MAIL_FROM}>`,
-      to: email,
-      subject: "تأكيد البريد الإلكتروني",
-      html: `
-        <p>مرحباً ${name},</p>
-        <p>اضغط على الرابط التالي لتأكيد بريدك الإلكتروني:</p>
-        <a href="${verifyLink}">${verifyLink}</a>
-        <p>شكراً لاستخدامك SnowHost Panel.</p>
-      `,
-    });
+    await transporter.sendMail(mailOptions);
   } catch (error) {
-    return res.status(500).json({ message: "Failed to send verification email", error });
+    console.error("Error sending email:", error);
+    return NextResponse.json({ error: "Failed to send verification email" }, { status: 500 });
   }
 
-  res.status(201).json({ message: "User created, verification email sent" });
+  return NextResponse.json({ ok: true, message: "تم إنشاء حسابك بنجاح! تم إرسال رسالة التفعيل إلى بريدك الإلكتروني. يرجى التحقق منه قبل تسجيل الدخول." });
 }
