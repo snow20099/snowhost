@@ -4,59 +4,53 @@ const UserSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  
-  emailVerified: { type: Boolean, default: false },    // هل تم التحقق من الإيميل؟
-  verificationCode: { type: String, default: null },    // كود التحقق
-  
   // Account Information
   balance: { type: Number, default: 0 },
   currency: { type: String, default: "USD" },
   accountType: { type: String, default: "user", enum: ["user", "admin", "moderator"] },
   isActive: { type: Boolean, default: true },
-
   // Profile Information
   phone: { type: String },
   country: { type: String },
   timezone: { type: String },
-
   // Services & Servers
   servers: [{ 
     id: String,
     name: String,
-    type: String,
-    status: String,
+    type: String, // vps, vds, gaming, web
+    status: String, // active, suspended, terminated
     ip: String,
     location: String,
     createdAt: { type: Date, default: Date.now }
   }],
-
   // Resource Usage
   resourceUsage: {
-    cpu: { type: Number, default: 0 },
-    memory: { type: Number, default: 0 },
-    storage: { type: Number, default: 0 },
-    network: { type: Number, default: 0 },
-    totalStorage: { type: Number, default: 500 },
-    totalMemory: { type: Number, default: 16 },
-    totalNetwork: { type: Number, default: 1000 },
+    cpu: { type: Number, default: 0 }, // CPU usage percentage
+    memory: { type: Number, default: 0 }, // Memory usage percentage
+    storage: { type: Number, default: 0 }, // Storage usage percentage
+    network: { type: Number, default: 0 }, // Network usage percentage
+    totalStorage: { type: Number, default: 500 }, // Total storage in GB
+    totalMemory: { type: Number, default: 16 }, // Total memory in GB
+    totalNetwork: { type: Number, default: 1000 }, // Total network in GB
     lastUpdated: { type: Date, default: Date.now }
   },
-
   // Billing Information
   invoices: [{
     id: String,
     amount: Number,
-    status: String,
+    status: String, // paid, pending, overdue
     service: String,
     date: { type: Date, default: Date.now }
   }],
-
   // Settings
   preferences: {
     theme: { type: String, default: "dark" },
     language: { type: String, default: "en" },
     notifications: { type: Boolean, default: true }
-  }
-}, { timestamps: true });
+  },
+  // Timestamps
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
 
-export default models.User || model("User", UserSchema);
+export default models.User || model("User", UserSchema); 
