@@ -24,11 +24,10 @@ const WorldMap: React.FC = () => {
     src="/world-map.svg"
     alt="World Map"
     fill
-    className="object-cover opacity-20 pointer-events-none z-0"
+    className="object-cover opacity-50 pointer-events-none z-0"
     priority
   />
-  {/* جرب تعليق التدرج */}
-  {/ <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-[-10]" /> /}
+  <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/10 via-black/10 to-indigo-900/10 z-0" />
 
       {/* Glowing animated dots */}
       {glowingDots.map((dot, index) => (
