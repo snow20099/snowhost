@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import HexMapGlow from "@/components/HexMapGlow"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import WorldMap from '@/components/WorldMap'
 import { Shield, Zap, Globe, Cpu, Clock, Headset, Lock, BarChart, Cloud, Repeat, Smartphone } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
