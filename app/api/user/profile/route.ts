@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { getToken } from "next-auth/jwt"
 import { connectToDatabase } from "@/lib/mongodb"
 import User from "@/models/User"
 
-export async function GET() {
+const secret = process.env.NEXTAUTH_SECRET!
+
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.email) {
+    const token = await getToken({ req, secret })
+
+    if (!token?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     await connectToDatabase()
-    const user = await User.findOne({ email: session.user.email }).select('-password')
-    
+    const user = await User.findOne({ email: token.email }).select("-password")
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
@@ -44,36 +47,3 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getServerSession()
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const body = await request.json()
-    await connectToDatabase()
-    
-    const updatedUser = await User.findOneAndUpdate(
-      { email: session.user.email },
-      { 
-        $set: {
-          name: body.name,
-          phone: body.phone,
-          country: body.country,
-          timezone: body.timezone,
-          'preferences.theme': body.theme,
-          'preferences.language': body.language,
-          updatedAt: new Date()
-        }
-      },
-      { new: true }
-    ).select('-password')
-
-    return NextResponse.json(updatedUser)
-  } catch (error) {
-    console.error("Update Profile Error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-} 
