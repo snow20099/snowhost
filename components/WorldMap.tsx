@@ -28,7 +28,7 @@ const WorldMap: React.FC = () => {
     priority
   />
   {/* جرب تعليق التدرج */}
-  {/* <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-[-10]" /> */}
+  {/ <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-[-10]" /> /}
 
       {/* Glowing animated dots */}
       {glowingDots.map((dot, index) => (
