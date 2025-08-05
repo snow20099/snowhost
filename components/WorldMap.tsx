@@ -19,18 +19,16 @@ const glowingDots: Dot[] = [
 
 const WorldMap: React.FC = () => {
   return (
-    <div className="relative w-full h-[500px] bg-background overflow-hidden rounded-lg">
-      {/* Subtle background world map SVG */}
-      <Image
-        src="/world-map.svg"
-        alt="World Map"
-        fill
-        className="object-cover opacity-20 pointer-events-none"
-        priority
-      />
-
-      {/* Gradient glow overlay */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-0" />
+<div className="relative w-full h-[500px] bg-background overflow-hidden rounded-lg">
+  <Image
+    src="/world-map.svg"
+    alt="World Map"
+    fill
+    className="object-cover opacity-20 pointer-events-none z-0"
+    priority
+  />
+  {/* جرب تعليق التدرج */}
+  {/* <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-[-10]" /> */}
 
       {/* Glowing animated dots */}
       {glowingDots.map((dot, index) => (
