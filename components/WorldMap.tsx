@@ -27,7 +27,7 @@ const WorldMap: React.FC = () => {
     className="object-cover opacity-50 pointer-events-none z-0"
     priority
   />
-  <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/10 via-black/10 to-indigo-900/10 z-0" />
+  <div className="object-cover opacity-90 pointer-events-none z-0 filter brightness-125" />
 
       {/* Glowing animated dots */}
       {glowingDots.map((dot, index) => (
