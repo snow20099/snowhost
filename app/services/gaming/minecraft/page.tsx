@@ -61,7 +61,7 @@ export default function MinecraftHostingPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               <Image
-                src="https://images.unsplash.com/photo-1587573089734-599d584a3bf6?q=80&w=2070&auto=format&fit=crop"
+                src="https://image.api.playstation.com/vulcan/ap/rnd/202407/1020/91fe046f742042e3b31e57f7731dbe2226e1fd1e02a36223.jpg"
                 alt="Minecraft server visualization"
                 fill
                 className="object-cover"
@@ -109,7 +109,7 @@ export default function MinecraftHostingPage() {
                 {[
                   {
                     title: "Starter",
-                    price: "$2.99",
+                    price: "$1",
                     ram: "1GB",
                     cpu: "1 vCore",
                     storage: "10GB SSD",
@@ -121,7 +121,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Basic",
-                    price: "$4.99",
+                    price: "$2",
                     ram: "2GB",
                     cpu: "2 vCores",
                     storage: "20GB SSD",
@@ -133,7 +133,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Standard",
-                    price: "$7.99",
+                    price: "$4",
                     ram: "4GB",
                     cpu: "2 vCores",
                     storage: "40GB SSD",
@@ -145,7 +145,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Premium",
-                    price: "$12.99",
+                    price: "$8",
                     ram: "8GB",
                     cpu: "4 vCores",
                     storage: "80GB SSD",
@@ -157,7 +157,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Ultimate",
-                    price: "$19.99",
+                    price: "$12",
                     ram: "12GB",
                     cpu: "6 vCores",
                     storage: "120GB NVMe",
@@ -169,7 +169,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Enterprise",
-                    price: "$29.99",
+                    price: "$16",
                     ram: "16GB",
                     cpu: "8 vCores",
                     storage: "160GB NVMe",
@@ -208,7 +208,7 @@ export default function MinecraftHostingPage() {
                 {[
                   {
                     title: "Starter",
-                    price: "$2.99",
+                    price: "$1",
                     ram: "1GB",
                     cpu: "1 vCore",
                     storage: "10GB SSD",
@@ -220,7 +220,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Basic",
-                    price: "$4.99",
+                    price: "$2",
                     ram: "2GB",
                     cpu: "2 vCores",
                     storage: "20GB SSD",
@@ -232,7 +232,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Standard",
-                    price: "$7.99",
+                    price: "$4",
                     ram: "4GB",
                     cpu: "2 vCores",
                     storage: "40GB SSD",
@@ -244,7 +244,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Premium",
-                    price: "$12.99",
+                    price: "$8",
                     ram: "8GB",
                     cpu: "4 vCores",
                     storage: "80GB SSD",
@@ -256,7 +256,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Ultimate",
-                    price: "$19.99",
+                    price: "$12",
                     ram: "12GB",
                     cpu: "6 vCores",
                     storage: "120GB NVMe",
@@ -268,7 +268,7 @@ export default function MinecraftHostingPage() {
                   },
                   {
                     title: "Enterprise",
-                    price: "$29.99",
+                    price: "$16",
                     ram: "16GB",
                     cpu: "8 vCores",
                     storage: "160GB NVMe",
