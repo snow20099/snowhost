@@ -253,7 +253,7 @@ export default function FeaturesPage() {
             </div>
             <div className="lg:w-1/2 relative h-[300px] w-full rounded-lg overflow-hidden border border-border/50">
               <Image
-                src="/placeholder.svg?height=600&width=800"
+                src="/dedicated-server-feature.webp?height=600&width=800"
                 alt="Control panel dashboard"
                 fill
                 className="object-cover"
@@ -277,7 +277,7 @@ export default function FeaturesPage() {
           </div>
           <div className="relative h-[400px] w-full rounded-lg overflow-hidden border border-border/50">
             <Image
-              src="/placeholder.svg?height=800&width=1200"
+              src="/dedicated-server-feature.webp?height=800&width=1200"
               alt="Global network map"
               fill
               className="object-cover"
