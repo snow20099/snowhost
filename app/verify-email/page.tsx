@@ -1,9 +1,12 @@
-import { useRouter } from "next/router";
+"use client";
+
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function VerifyEmail() {
-  const router = useRouter();
-  const { code, email } = router.query;
+  const searchParams = useSearchParams();
+  const code = searchParams.get("code");
+  const email = searchParams.get("email");
   const [message, setMessage] = useState("جاري التحقق...");
 
   useEffect(() => {
