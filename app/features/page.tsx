@@ -253,7 +253,7 @@ export default function FeaturesPage() {
             </div>
             <div className="lg:w-1/2 relative h-[300px] w-full rounded-lg overflow-hidden border border-border/50">
               <Image
-                src="/dedicated-server-feature.webp?height=600&width=800"
+                src="/Screenshot 2025-08-05 201555.png?height=600&width=800"
                 alt="Control panel dashboard"
                 fill
                 className="object-cover"
