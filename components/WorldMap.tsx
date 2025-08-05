@@ -20,11 +20,11 @@ const WorldMap: React.FC = () => {
   return (
     <div className="relative w-full h-full bg-black overflow-hidden rounded-lg">
       {/* إذا عندك صورة خريطة، فعّل هذا السطر */}
-      {/* <img
+      {/ <img
         src="/world-map.svg"
         alt="World Map"
         className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none"
-      /> */}
+      /> /}
 
       {/* Gradient background overlay */}
       <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-black to-indigo-900/20 z-0" />
