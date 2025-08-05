@@ -90,7 +90,7 @@ export default function GamingHostingPage() {
                 title: "Minecraft",
                 description:
                   "High-performance Minecraft servers with instant setup, mod support, and automatic backups.",
-                image: "https://images.unsplash.com/photo-1587573089734-599d584a3bf6?q=80&w=2070&auto=format&fit=crop",
+                image: "https://image.api.playstation.com/vulcan/ap/rnd/202407/1020/91fe046f742042e3b31e57f7731dbe2226e1fd1e02a36223.jpg",
                 href: "/services/gaming/minecraft",
                 delay: 0,
               },
