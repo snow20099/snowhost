@@ -1,8 +1,7 @@
-
-import NextAuth from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import DiscordProvider from "next-auth/providers/discord"
-import CredentialsProvider from "next-auth/providers/credentials"
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import DiscordProvider from "next-auth/providers/discord";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
@@ -25,20 +24,36 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials) return null;
+
         await connectToDatabase();
+
         const user = await User.findOne({ email: credentials.email });
-        if (user && await bcrypt.compare(credentials.password, user.password)) {
-          return { id: user._id.toString(), name: user.name, email: user.email };
+
+        if (!user) return null;
+
+        if (!user.emailVerified) {
+          throw new Error("Please verify your email before logging in.");
         }
-        return null;
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isPasswordValid) return null;
+
+        return { id: user._id.toString(), name: user.name, email: user.email };
       },
     }),
   ],
+
   callbacks: {
     async redirect({ url, baseUrl }) {
-      return "/dashboard"
+      return "/dashboard";
     },
   },
-})
 
-export { handler as GET, handler as POST } 
+  // يمكنك إضافة صفحة مخصصة للأخطاء لكي تظهر رسالة التحقق
+  pages: {
+    signIn: '/auth/signin',  // صفحة تسجيل الدخول
+    error: '/auth/error',    // صفحة الأخطاء (مثلاً تعرض رسالة التحقق)
+  },
+});
+
+export { handler as GET, handler as POST };
