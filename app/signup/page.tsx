@@ -33,7 +33,19 @@ export default function SignupPage() {
     })
     setIsLoading(false)
     if (res.ok) {
-      // سجل دخول تلقائي بعد التسجيل
+      // هنا رابط التحقق مع كود (الكود راح تولده السيرفر بعد التسجيل عادة)
+      // افترضنا أن الكود تم إنشاؤه على السيرفر ورفعه مع الرد أو تستخدم إيميل فقط
+      const verificationCode = "generated-code-from-server"; // لازم تجيبه من الرد الحقيقي أو طريقة بديلة
+
+      const verificationLink = `https://yourdomain.com/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}`
+
+      await fetch("/api/auth/send-verification-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, verificationLink }),
+      })
+
+      // تسجيل دخول تلقائي (ممكن تلغيه لو تبغى المستخدم يظل ينتظر التفعيل)
       await signIn("credentials", { email, password, callbackUrl: "/dashboard" })
     } else {
       const data = await res.json()
