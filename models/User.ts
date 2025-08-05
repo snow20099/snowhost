@@ -5,8 +5,8 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   
-  emailVerified: { type: Boolean, default: false },    // جديد: هل تم التحقق من الإيميل؟
-  verificationCode: { type: String, default: null },    // جديد: كود التحقق
+  emailVerified: { type: Boolean, default: false },    // هل تم التحقق من الإيميل؟
+  verificationCode: { type: String, default: null },    // كود التحقق
   
   // Account Information
   balance: { type: Number, default: 0 },
@@ -23,8 +23,8 @@ const UserSchema = new Schema({
   servers: [{ 
     id: String,
     name: String,
-    type: String, // vps, vds, gaming, web
-    status: String, // active, suspended, terminated
+    type: String,
+    status: String,
     ip: String,
     location: String,
     createdAt: { type: Date, default: Date.now }
@@ -32,13 +32,13 @@ const UserSchema = new Schema({
 
   // Resource Usage
   resourceUsage: {
-    cpu: { type: Number, default: 0 }, // CPU usage percentage
-    memory: { type: Number, default: 0 }, // Memory usage percentage
-    storage: { type: Number, default: 0 }, // Storage usage percentage
-    network: { type: Number, default: 0 }, // Network usage percentage
-    totalStorage: { type: Number, default: 500 }, // Total storage in GB
-    totalMemory: { type: Number, default: 16 }, // Total memory in GB
-    totalNetwork: { type: Number, default: 1000 }, // Total network in GB
+    cpu: { type: Number, default: 0 },
+    memory: { type: Number, default: 0 },
+    storage: { type: Number, default: 0 },
+    network: { type: Number, default: 0 },
+    totalStorage: { type: Number, default: 500 },
+    totalMemory: { type: Number, default: 16 },
+    totalNetwork: { type: Number, default: 1000 },
     lastUpdated: { type: Date, default: Date.now }
   },
 
@@ -46,7 +46,7 @@ const UserSchema = new Schema({
   invoices: [{
     id: String,
     amount: Number,
-    status: String, // paid, pending, overdue
+    status: String,
     service: String,
     date: { type: Date, default: Date.now }
   }],
@@ -56,11 +56,7 @@ const UserSchema = new Schema({
     theme: { type: String, default: "dark" },
     language: { type: String, default: "en" },
     notifications: { type: Boolean, default: true }
-  },
-
-  // Timestamps
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+  }
+}, { timestamps: true });
 
 export default models.User || model("User", UserSchema);
