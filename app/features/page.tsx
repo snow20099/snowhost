@@ -1,6 +1,7 @@
 import type React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import HexMapGlow from "@/components/HexMapGlow"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Zap, Globe, Cpu, Clock, Headset, Lock, BarChart, Cloud, Repeat, Smartphone } from "lucide-react"
 import Image from "next/image"
@@ -264,36 +265,31 @@ export default function FeaturesPage() {
       </section>
 
       {/* Network Infrastructure */}
-      <section className="py-16 md:py-24 bg-background">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-            <Badge className="px-3 py-1 text-sm bg-blue-600/10 text-blue-600 border-blue-600/20 rounded-full">
-              Global Network
-            </Badge>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Premium Network Infrastructure</h2>
-            <p className="max-w-[700px] text-muted-foreground md:text-lg">
-              Our global network of data centers ensures low latency and high availability for your services.
-            </p>
-          </div>
-          <div className="relative h-[400px] w-full rounded-lg overflow-hidden border border-border/50">
-            <Image
-              src="/dedicated-server-feature.webp?height=800&width=1200"
-              alt="Global network map"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <NetworkLocationCard location="North America" ping="10ms" />
-                <NetworkLocationCard location="Europe" ping="25ms" />
-                <NetworkLocationCard location="Asia" ping="40ms" />
-                <NetworkLocationCard location="Australia" ping="60ms" />
-              </div>
-            </div>
-          </div>
+<section className="py-16 md:py-24 bg-background">
+  <div className="container px-4 md:px-6">
+    <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+      <Badge className="px-3 py-1 text-sm bg-blue-600/10 text-blue-600 border-blue-600/20 rounded-full">
+        Global Network
+      </Badge>
+      <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Premium Network Infrastructure</h2>
+      <p className="max-w-[700px] text-muted-foreground md:text-lg">
+        Our global network of data centers ensures low latency and high availability for your services.
+      </p>
+    </div>
+    <div className="relative h-[400px] w-full rounded-lg overflow-hidden border border-border/50">
+      <WorldMap />
+      <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <NetworkLocationCard location="North America" ping="10ms" />
+          <NetworkLocationCard location="Europe" ping="25ms" />
+          <NetworkLocationCard location="Asia" ping="40ms" />
+          <NetworkLocationCard location="Australia" ping="60ms" />
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Technical Specifications */}
       <section className="py-16 md:py-24 bg-blue-600/10">
