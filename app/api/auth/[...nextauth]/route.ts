@@ -1,7 +1,7 @@
-import NextAuth from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import DiscordProvider from "next-auth/providers/discord"
-import CredentialsProvider from "next-auth/providers/credentials"
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import DiscordProvider from "next-auth/providers/discord";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
@@ -26,18 +26,19 @@ const handler = NextAuth({
         if (!credentials) return null;
         await connectToDatabase();
         const user = await User.findOne({ email: credentials.email });
-        if (user && await bcrypt.compare(credentials.password, user.password)) {
-          return { id: user._id.toString(), name: user.name, email: user.email };
-        }
-        return null;
+        if (!user) throw new Error("No user found");
+        if (!user.emailVerified) throw new Error("Please verify your email first");
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) throw new Error("Invalid credentials");
+        return { id: user._id.toString(), name: user.name, email: user.email };
       },
     }),
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
-      return "/dashboard"
+      return "/dashboard";
     },
   },
-})
+});
 
-export { handler as GET, handler as POST } 
+export { handler as GET, handler as POST };
