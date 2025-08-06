@@ -3,7 +3,7 @@ import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 
 const PTERO_API = 'ptla_1BcwiCCgwQ1lsdCoAxWmRpUxDRfE3HaM93cGmPAWNkg'
-const PTERO_URL = 'https://panel.example.com' // <-- غير هذا للرابط الصحيح
+const PTERO_URL = 'https://panel.snowhost.cloud' // <-- غير هذا للرابط الصحيح
 
 // بيانات الباقة
 const MC_ULTIMATE = {
@@ -119,3 +119,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
