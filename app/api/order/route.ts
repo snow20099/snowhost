@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 
 const PTERO_API = "ptla_1BcwiCCgwQ1lsdCoAxWmRpUxDRfE3HaM93cGmPAWNkg";
-const PTERO_URL = "https://panel.example.com"; // غيّر إلى رابط لوحتك
+const PTERO_URL = "https://panel.snowhost.cloud"; // غيّر إلى رابط لوحتك
 const PORT = 3000;
 
 // بيانات وهمية للمستخدم (مثال)
@@ -120,3 +120,4 @@ app.post("/order-minecraft-ultimate", async (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`⚡️ السيرفر شغّال على http://localhost:${PORT}`);
 });
+
