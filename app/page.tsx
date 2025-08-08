@@ -52,7 +52,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Everything you need for gaming, VPS, VDS, and web hosting with premium performance and 24/7 support.
+              sEverything you need for gaming, VPS, VDS, and web hosting with premium performance and 24/7 support.
             </motion.p>
 
             <motion.div
