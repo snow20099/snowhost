@@ -8,24 +8,37 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['localhost'],
   },
-  experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
-  },
+  // Remove experimental features that might cause build issues
+  // experimental: {
+  //   webpackBuildWorker: true,
+  //   parallelServerBuildTraces: true,
+  //   parallelServerCompiles: true,
+  // },
+  
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  // Domain configuration
+  
+  // Environment variables
   env: {
-    NEXT_PUBLIC_SITE_URL: 'https://panel.snowhost.cloud',
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  // Base path if needed
-  // basePath: '',
-  // Asset prefix for CDN if needed
-  // assetPrefix: 'https://panel.snowhost.cloud',
+  
+  // Webpack configuration for better compatibility
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
 }
 
 export default nextConfig;
