@@ -61,6 +61,7 @@
     "next-auth": "^4.24.0",
     "next-themes": "latest",
     "nodemailer": "^6.9.4",
+    "ping": "^0.4.0",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
