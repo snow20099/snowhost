@@ -260,21 +260,21 @@ export default function Home() {
               {
                 quote:
                   "SnowHost has been a game-changer for our Minecraft server. The performance is incredible, and their support team is always there when we need them.",
-                author: "Alex Johnson",
+                author: "Snow",
                 role: "Gaming Community Owner",
                 delay: 0,
               },
               {
                 quote:
                   "I've tried many hosting providers, but SnowHost offers the best balance of performance, reliability, and price. Their VPS hosting is unmatched.",
-                author: "Sarah Williams",
+                author: "Pablo.ejs",
                 role: "Web Developer",
                 delay: 0.1,
               },
               {
                 quote:
                   "The uptime is truly impressive. In the past year, our website has experienced zero downtime, which is crucial for our e-commerce business.",
-                author: "Michael Chen",
+                author: "technoksa",
                 role: "E-commerce Business Owner",
                 delay: 0.2,
               },
