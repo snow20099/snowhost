@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import ping from "ping";
 
 const servers = [
-  { id: "us-west", name: "US West (Los Angeles)", ip: "1.32.239.255" },
+  { id: "us-west", name: "US West (Los Angeles)", ip: "23.214.210.134" },
   { id: "dubai", name: "Dubai (Abu Dhabi)", ip: "5.53.103.255" },
   { id: "eu-central", name: "EU Central (Frankfurt)", ip: "31.57.112.217" },
   { id: "asia-east", name: "Asia East (Tokyo)", ip: "175.41.238.135" },
@@ -28,3 +28,4 @@ export async function GET() {
 
   return NextResponse.json(results);
 }
+
