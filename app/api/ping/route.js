@@ -1,3 +1,5 @@
+export const runtime = "nodejs"; // مهم: يحدد إن هذا API يستخدم Node.js runtime
+
 import { NextResponse } from "next/server";
 import ping from "ping";
 
@@ -12,7 +14,7 @@ export async function GET() {
   const results = await Promise.all(
     servers.map(async (server) => {
       try {
-        const res = await ping.promise.probe(server.ip, { timeout: 2 });
+        const res = await ping.promise.probe(server.ip, { timeout: 5 });
         return {
           ...server,
           status: res.alive ? "operational" : "maintenance",
