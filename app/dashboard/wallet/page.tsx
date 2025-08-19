@@ -10,6 +10,15 @@ interface UserBalance {
   currency: string
 }
 
+interface Transaction {
+  id: string
+  amount: number
+  type: string
+  reason: string
+  date: string
+  status: 'pending' | 'completed' | 'failed'
+}
+
 const balances = [
   { label: "Added Balance", value: "$0.00", color: "text-blue-400" },
   { label: "Total Balance", value: "$0.00", color: "text-blue-500" },
@@ -18,11 +27,23 @@ const balances = [
 
 const paymentMethods = [
   { 
+    name: "PayPal", 
+    desc: "Secure PayPal payments",
+    label: "Secure",
+    labelColor: "bg-blue-500",
+    labelIcon: "🛡️",
+    type: "paypal",
+    icons: [
+      <div key="paypal" className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">P</div>
+    ]
+  },
+  { 
     name: "Cryptocurrency", 
     desc: "Bitcoin, Ethereum, USDT",
     label: "Most Popular",
     labelColor: "bg-purple-500",
     labelIcon: "⭐",
+    type: "crypto",
     icons: [
       <div key="btc" className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">₿</div>,
       <div key="eth" className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">Ξ</div>,
@@ -30,43 +51,29 @@ const paymentMethods = [
     ]
   },
   { 
-    name: "Egyptian Wallets", 
-    desc: "Vodafone Cash, Orange, Etisalat, WE",
+    name: "Stripe Cards", 
+    desc: "Visa, MasterCard, Amex",
     label: "Fast",
     labelColor: "bg-green-500",
     labelIcon: "⚡",
-    icons: [
-      <div key="vodafone" className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-xs">V</div>,
-      <div key="orange" className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">O</div>,
-      <div key="etisalat" className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-xs">E</div>,
-      <div key="we" className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs">W</div>
-    ]
-  },
-  { 
-    name: "Visa / MasterCard", 
-    desc: "Credit cards",
-    label: "Secure",
-    labelColor: "bg-blue-400",
-    labelIcon: "🛡️",
+    type: "stripe",
     icons: [
       <div key="visa" className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">VISA</div>,
       <div key="mastercard" className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white font-bold text-xs">MC</div>,
-      <div key="card" className="w-8 h-8 bg-blue-300 rounded flex items-center justify-center text-white font-bold text-xs">💳</div>
+      <div key="card" className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center text-white font-bold text-xs">💳</div>
     ]
   },
   { 
-    name: "Apple Pay", 
-    desc: "One-touch payment",
-    label: "Exclusive",
-    labelColor: "bg-orange-500",
-    labelIcon: "",
+    name: "Egyptian Wallets", 
+    desc: "Vodafone Cash, Orange, Etisalat",
+    label: "Local",
+    labelColor: "bg-red-500",
+    labelIcon: "🏛️",
+    type: "egyptian",
     icons: [
-      <div key="apple" className="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold text-xs">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.71 19.5c-.83 1.24-2.01 2.5-3.12 2.5-1.26 0-1.8-.79-3.38-.79-1.59 0-2.12.79-3.38.79-1.11 0-2.29-1.26-3.12-2.5-1.66-2.48-2.94-7.02-2.94-7.02s1.18-1.5 2.94-1.5c1.26 0 2.12.79 3.38.79 1.26 0 2.12-.79 3.38-.79 1.76 0 2.94 1.5 2.94 1.5s-1.28 4.54-2.94 7.02z"/>
-          <path d="M12 2c0 1.5-1.5 2.5-3 2.5s-3-1-3-2.5 1.5-2.5 3-2.5 3 1 3 2.5z"/>
-        </svg>
-      </div>
+      <div key="vodafone" className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-xs">V</div>,
+      <div key="orange" className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">O</div>,
+      <div key="etisalat" className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-xs">E</div>
     ]
   }
 ]
@@ -77,18 +84,38 @@ export default function WalletPage() {
   const [selected, setSelected] = useState(0)
   const [userBalance, setUserBalance] = useState<UserBalance | null>(null)
   const [loading, setLoading] = useState(true)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        const response = await fetch('/api/user/balance')
-        if (response.ok) {
-          const data = await response.json()
-          setUserBalance(data)
-        }
+        // محاكاة جلب الرصيد من الـ API
+        setTimeout(() => {
+          setUserBalance({ balance: 250.50, currency: 'USD' })
+          setTransactions([
+            {
+              id: 'tx_001',
+              amount: 100,
+              type: 'deposit',
+              reason: 'PayPal Payment',
+              date: '2025-08-18',
+              status: 'completed'
+            },
+            {
+              id: 'tx_002',
+              amount: 50,
+              type: 'withdrawal',
+              reason: 'Service Purchase',
+              date: '2025-08-17',
+              status: 'completed'
+            }
+          ])
+          setLoading(false)
+        }, 1500)
       } catch (error) {
         console.error("Error fetching balance:", error)
-      } finally {
         setLoading(false)
       }
     }
@@ -96,32 +123,139 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-  const handleAddBalance = async () => {
+  // دالة لمعالجة دفع PayPal
+  const handlePayPalPayment = async (amount: number) => {
     try {
-      const response = await fetch('/api/user/balance', {
+      // في التطبيق الحقيقي، ستحتاج لتثبيت @paypal/react-paypal-js
+      const response = await fetch('/api/payment/paypal/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amount,
-          paymentMethod: paymentMethods[selected].name
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      })
+      
+      const { orderID } = await response.json()
+      
+      // هنا ستفتح نافذة PayPal للدفع
+      window.open(`https://www.sandbox.paypal.com/checkoutnow?token=${orderID}`, '_blank')
+      
+      return { success: true, orderId: orderID }
+    } catch (error) {
+      throw new Error('PayPal payment failed')
+    }
+  }
+
+  // دالة لمعالجة دفع الكريبتو
+  const handleCryptoPayment = async (amount: number) => {
+    try {
+      const response = await fetch('/api/payment/crypto/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount,
+          currency: 'USD',
+          acceptedCoins: ['BTC', 'ETH', 'USDT']
         })
       })
+      
+      const invoice = await response.json()
+      
+      // إظهار عنوان المحفظة ومبلغ الدفع
+      alert(`Payment Address: ${invoice.address}\nAmount: ${invoice.cryptoAmount} ${invoice.coin}`)
+      
+      return { success: true, invoiceId: invoice.id }
+    } catch (error) {
+      throw new Error('Crypto payment failed')
+    }
+  }
 
-      if (response.ok) {
-        const result = await response.json()
-        setUserBalance(prev => prev ? { ...prev, balance: result.newBalance } : null)
-        setShowModal(false)
-        // Refresh balance
-        const balanceResponse = await fetch('/api/user/balance')
-        if (balanceResponse.ok) {
-          const data = await balanceResponse.json()
-          setUserBalance(data)
+  // دالة لمعالجة دفع Stripe
+  const handleStripePayment = async (amount: number) => {
+    try {
+      const response = await fetch('/api/payment/stripe/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount: amount * 100, // Stripe يستخدم cents
+          currency: 'usd'
+        })
+      })
+      
+      const { sessionId } = await response.json()
+      
+      // توجيه المستخدم لصفحة Stripe للدفع
+      window.location.href = `https://checkout.stripe.com/pay/${sessionId}`
+      
+      return { success: true, sessionId }
+    } catch (error) {
+      throw new Error('Stripe payment failed')
+    }
+  }
+
+  // دالة لمعالجة المحافظ المصرية
+  const handleEgyptianWalletPayment = async (amount: number) => {
+    try {
+      // هذا يحتاج تكامل مع مزودي خدمات الدفع المصريين
+      const response = await fetch('/api/payment/egyptian/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, provider: 'vodafone' })
+      })
+      
+      const payment = await response.json()
+      alert(`Please send ${amount} EGP to: ${payment.phoneNumber}`)
+      
+      return { success: true, paymentId: payment.id }
+    } catch (error) {
+      throw new Error('Egyptian wallet payment failed')
+    }
+  }
+
+  const handleAddBalance = async () => {
+    setPaymentLoading(true)
+    setError(null)
+    
+    try {
+      const selectedMethod = paymentMethods[selected]
+      let result
+      
+      switch (selectedMethod.type) {
+        case 'paypal':
+          result = await handlePayPalPayment(amount)
+          break
+        case 'crypto':
+          result = await handleCryptoPayment(amount)
+          break
+        case 'stripe':
+          result = await handleStripePayment(amount)
+          break
+        case 'egyptian':
+          result = await handleEgyptianWalletPayment(amount)
+          break
+        default:
+          throw new Error('Unsupported payment method')
+      }
+
+      if (result.success) {
+        // إضافة معاملة جديدة في حالة الانتظار
+        const newTransaction: Transaction = {
+          id: `tx_${Date.now()}`,
+          amount: amount,
+          type: 'deposit',
+          reason: `${selectedMethod.name} Payment`,
+          date: new Date().toISOString().split('T')[0],
+          status: 'pending'
         }
+        
+        setTransactions(prev => [newTransaction, ...prev])
+        setShowModal(false)
+        
+        // في التطبيق الحقيقي، سيتم تحديث الرصيد بعد تأكيد الدفع
+        alert(`Payment initiated successfully! Transaction ID: ${result.orderId || result.invoiceId || result.sessionId}`)
       }
     } catch (error) {
-      console.error("Error adding balance:", error)
+      setError(error instanceof Error ? error.message : 'Payment failed')
+    } finally {
+      setPaymentLoading(false)
     }
   }
 
@@ -136,8 +270,8 @@ export default function WalletPage() {
   }
 
   const updatedBalances = [
-    { label: "Added Balance", value: `$${userBalance?.balance || 0}`, color: "text-blue-400" },
-    { label: "Total Balance", value: `$${userBalance?.balance || 0}`, color: "text-blue-500" },
+    { label: "Added Balance", value: `$${userBalance?.balance.toFixed(2) || '0.00'}`, color: "text-blue-400" },
+    { label: "Total Balance", value: `$${userBalance?.balance.toFixed(2) || '0.00'}`, color: "text-blue-500" },
     { label: "Cashback Balance", value: "$0.00", color: "text-blue-400" },
   ]
 
@@ -150,29 +284,38 @@ export default function WalletPage() {
             <CardTitle className="text-lg">Add Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={e => { e.preventDefault(); setShowModal(true); }}>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm mb-1 font-medium">Amount (USD)</label>
                 <Input
                   type="number"
                   min={1}
+                  max={10000}
                   value={amount}
                   onChange={e => setAmount(Number(e.target.value))}
                   className="w-full"
-                  placeholder="$"
+                  placeholder="Enter amount"
                 />
               </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2">Confirm</Button>
-            </form>
+              <Button 
+                onClick={() => setShowModal(true)} 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2"
+              >
+                Add Balance
+              </Button>
+            </div>
+            {error && (
+              <div className="mt-2 text-red-500 text-sm">{error}</div>
+            )}
           </CardContent>
         </Card>
+
         {/* Balance Cards */}
         <div className="flex flex-col gap-4 col-span-2 md:flex-row md:col-span-2 lg:col-span-2">
           {updatedBalances.map((bal, idx) => (
             <Card key={idx} className="flex-1 hover:border-blue-600 hover:shadow-lg transition-all duration-200 cursor-pointer">
               <CardHeader className="flex flex-row items-center gap-3 pb-2">
                 <div className="p-2 rounded-md bg-background border border-blue-600 hover:border-blue-500 transition-colors">
-                  {/* Real wallet icon */}
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="2" y="6" width="20" height="12" rx="2" stroke="#3b82f6" strokeWidth="2" fill="none"/>
                     <rect x="4" y="8" width="16" height="2" fill="#3b82f6"/>
@@ -191,6 +334,7 @@ export default function WalletPage() {
           ))}
         </div>
       </div>
+
       {/* Transactions Table */}
       <Card className="mt-8">
         <CardHeader>
@@ -205,12 +349,37 @@ export default function WalletPage() {
                   <th className="py-2 px-4 text-left font-semibold">Type</th>
                   <th className="py-2 px-4 text-left font-semibold">Reason</th>
                   <th className="py-2 px-4 text-left font-semibold">Date</th>
+                  <th className="py-2 px-4 text-left font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td colSpan={4} className="py-6 text-center text-muted-foreground">No transactions found.</td>
-                </tr>
+                {transactions.length > 0 ? (
+                  transactions.map((tx) => (
+                    <tr key={tx.id} className="border-b border-border/10 hover:bg-muted/50">
+                      <td className="py-2 px-4">
+                        <span className={tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}>
+                          {tx.type === 'deposit' ? '+' : '-'}${tx.amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4 capitalize">{tx.type}</td>
+                      <td className="py-2 px-4">{tx.reason}</td>
+                      <td className="py-2 px-4">{tx.date}</td>
+                      <td className="py-2 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          tx.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">No transactions found.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -221,20 +390,32 @@ export default function WalletPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-background rounded-xl shadow-xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in">
-            <button onClick={() => setShowModal(false)} className="absolute top-3 right-3 text-xl text-muted-foreground">×</button>
+            <button 
+              onClick={() => setShowModal(false)} 
+              className="absolute top-3 right-3 text-xl text-muted-foreground hover:text-foreground"
+              disabled={paymentLoading}
+            >
+              ×
+            </button>
+            
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-bold text-lg">Pay Invoice</span>
+              <span className="font-bold text-lg">Select Payment Method</span>
               <span className="text-blue-600 font-bold">${amount.toFixed(2)}</span>
             </div>
-            <div className="mb-4 bg-yellow-100 text-yellow-800 rounded px-4 py-2 text-sm">
-              <b>Note:</b> Some fees may be added to the total invoice as compensation for payment fees.
+            
+            <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded px-4 py-2 text-sm">
+              <b>Info:</b> You will be redirected to the payment provider to complete your transaction securely.
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            
+            <div className="grid grid-cols-1 gap-4 mb-6">
               {paymentMethods.map((method, idx) => (
                 <button
                   key={method.name}
                   onClick={() => setSelected(idx)}
-                  className={`relative flex flex-col items-center justify-center border rounded-lg p-4 transition-all duration-150 shadow-sm focus:outline-none ${selected === idx ? "border-blue-600 bg-gray-800" : "border-border/30 bg-background"}`}
+                  className={`relative flex items-center justify-between border rounded-lg p-4 transition-all duration-150 shadow-sm focus:outline-none ${
+                    selected === idx ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20" : "border-border/30 bg-background hover:bg-muted/50"
+                  }`}
+                  disabled={paymentLoading}
                 >
                   {/* Label */}
                   <div className={`absolute top-2 right-2 ${method.labelColor} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1`}>
@@ -242,22 +423,42 @@ export default function WalletPage() {
                     <span>{method.label}</span>
                   </div>
                   
-                  {/* Icons */}
-                  <div className="flex gap-2 mb-3">
-                    {method.icons}
+                  <div className="flex items-center gap-4">
+                    {/* Icons */}
+                    <div className="flex gap-2">
+                      {method.icons}
+                    </div>
+                    
+                    <div className="text-left">
+                      <div className="font-semibold text-sm">{method.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{method.desc}</div>
+                    </div>
                   </div>
                   
-                  <span className="font-semibold text-sm">{method.name}</span>
-                  <span className="text-xs text-muted-foreground mt-1 text-center">{method.desc}</span>
+                  {/* Radio indicator */}
+                  <div className={`w-4 h-4 rounded-full border-2 ${
+                    selected === idx ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                  }`}>
+                    {selected === idx && <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>}
+                  </div>
                 </button>
               ))}
             </div>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg" onClick={handleAddBalance}>
-              Confirm
+            
+            <Button 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg" 
+              onClick={handleAddBalance}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
             </Button>
+            
+            {error && (
+              <div className="mt-3 text-red-500 text-sm text-center">{error}</div>
+            )}
           </div>
         </div>
       )}
     </div>
   )
-} 
+}
