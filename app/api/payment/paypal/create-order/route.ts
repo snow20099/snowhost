@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         description: 'Wallet Balance Top-up'
       }],
       application_context: {
-        brand_name: 'Your App Name',
+        brand_name: 'SnowHost',
         landing_page: 'BILLING',
         user_action: 'PAY_NOW',
         return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
@@ -65,3 +65,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create PayPal order' }, { status: 500 })
   }
 }
+
