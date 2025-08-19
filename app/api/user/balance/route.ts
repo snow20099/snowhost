@@ -15,7 +15,8 @@ export async function GET() {
     
     return NextResponse.json({
       balance: user?.balance || 0,
-      currency: user?.currency || "USD"
+      currency: user?.currency || "USD",
+      lastUpdated: new Date().toISOString()
     })
   } catch (error) {
     console.error("Balance API Error:", error)
@@ -30,25 +31,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { amount, paymentMethod } = await request.json()
+    const { amount, paymentMethod, transactionId } = await request.json()
     
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
 
+    // التحقق من صحة المعاملة بناءً على طريقة الدفع
+    if (!transactionId) {
+      return NextResponse.json({ error: "Transaction ID required" }, { status: 400 })
+    }
+
     await connectToDatabase()
     
-    // Add to user balance
+    // التحقق من عدم استخدام نفس معرف المعاملة مسبقاً
+    const existingTransaction = await User.findOne({
+      'transactions.transactionId': transactionId
+    })
+
+    if (existingTransaction) {
+      return NextResponse.json({ error: "Transaction already processed" }, { status: 400 })
+    }
+
+    // إضافة الرصيد والمعاملة
     const updatedUser = await User.findOneAndUpdate(
       { email: session.user.email },
       { 
         $inc: { balance: amount },
         $push: {
-          invoices: {
-            id: `INV-${Date.now()}`,
+          transactions: {
+            id: `TXN-${Date.now()}`,
+            transactionId: transactionId,
             amount: amount,
-            status: "paid",
-            service: "Balance Top-up",
+            type: "deposit",
+            method: paymentMethod,
+            status: "completed",
+            reason: "Balance Top-up",
             date: new Date()
           }
         }
@@ -59,10 +77,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       newBalance: updatedUser.balance,
-      message: `Successfully added $${amount} to your balance`
+      message: `Successfully added $${amount} to your balance via ${paymentMethod}`
     })
   } catch (error) {
     console.error("Add Balance Error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-} 
+}
