@@ -1,6 +1,3 @@
-// ==============================================================================
-// File: app/api/payment/paypal/create-order/route.ts
-// ==============================================================================
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 
