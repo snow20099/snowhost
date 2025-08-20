@@ -200,15 +200,17 @@ export default function WalletPage() {
           try {
             setPaymentLoading(true)
             
-            // هنا يمكنك إضافة capture للدفع
+            // Capture the payment
             const response = await fetch('/api/payment/paypal/capture-order', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderID: data.orderID })
             })
 
-            if (response.ok) {
-              // إضافة معاملة جديدة
+            const result = await response.json()
+
+            if (response.ok && result.success) {
+              // إضافة معاملة جديدة إلى الـ state المحلي
               const newTransaction: Transaction = {
                 id: `tx_${Date.now()}`,
                 amount: amount,
@@ -220,20 +222,20 @@ export default function WalletPage() {
               
               setTransactions(prev => [newTransaction, ...prev])
               
-              // تحديث الرصيد
+              // تحديث الرصيد المحلي
               if (userBalance) {
-                setUserBalance(prev => prev ? { ...prev, balance: prev.balance + amount } : null)
+                setUserBalance(prev => prev ? { ...prev, balance: result.newBalance || (prev.balance + amount) } : null)
               }
               
               setShowModal(false)
               setError(null)
-              alert('Payment completed successfully!')
+              alert(`Payment completed successfully! New balance: ${result.newBalance?.toFixed(2) || 'Updated'}`)
             } else {
-              throw new Error('Payment capture failed')
+              throw new Error(result.error || 'Payment capture failed')
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error('Payment approval error:', error)
-            setError('Payment approval failed')
+            setError('Payment approval failed: ' + error.message)
           } finally {
             setPaymentLoading(false)
           }
