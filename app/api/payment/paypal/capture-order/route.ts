@@ -3,8 +3,9 @@
 // ==============================================================================
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { connectToDatabase } from "@/lib/db"
-import { User } from "@/models/user"
+import User from "@/models/User"
 
 const paypal = require('@paypal/checkout-server-sdk')
 
@@ -27,7 +28,7 @@ function client() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -69,8 +70,27 @@ export async function POST(request: NextRequest) {
                 method: "PayPal",
                 status: "completed",
                 reason: "PayPal Payment",
-                date: new Date()
+                paymentDetails: {
+                  paypalOrderId: orderID,
+                  paypalCaptureId: capture.result.id,
+                  netAmount: amount,
+                  fees: 0 // يمكن حساب الرسوم إذا كانت موجودة
+                },
+                ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+                userAgent: request.headers.get('user-agent') || 'unknown',
+                date: new Date(),
+                updatedAt: new Date()
               }
+            },
+            $inc: { 
+              'walletStats.totalDeposits': amount,
+              'walletStats.paypalTotal': amount,
+              'walletStats.totalTransactions': 1,
+              'walletStats.currentMonthDeposits': amount
+            },
+            $set: {
+              'walletStats.lastUpdated': new Date(),
+              updatedAt: new Date()
             }
           },
           { new: true }
