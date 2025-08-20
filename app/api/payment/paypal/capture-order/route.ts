@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { connectToDatabase } from "@/lib/db"
+import { connectToDatabase } from "@/lib/mongodb"
 import { User } from "@/models/User"
 
 const paypal = require('@paypal/checkout-server-sdk')
