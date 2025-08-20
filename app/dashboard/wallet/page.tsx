@@ -5,13 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 
-// إضافة declaration للـ PayPal SDK
-declare global {
-  interface Window {
-    paypal?: any;
-  }
-}
-
 interface UserBalance {
   balance: number
   currency: string
@@ -94,7 +87,6 @@ export default function WalletPage() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [paypalLoaded, setPaypalLoaded] = useState(false)
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -131,152 +123,24 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-  // تحميل PayPal SDK عند فتح Modal
-  useEffect(() => {
-    if (showModal && selected === 0 && !paypalLoaded) { // 0 هو index الـ PayPal
-      loadPayPalSDK()
-    }
-  }, [showModal, selected, paypalLoaded])
-
-  const loadPayPalSDK = () => {
-    // تحقق من وجود الـ script مسبقاً
-    const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]')
-    if (existingScript) {
-      setPaypalLoaded(true)
-      renderPayPalButton()
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`
-    script.async = true
-    
-    script.onload = () => {
-      setPaypalLoaded(true)
-      renderPayPalButton()
-    }
-    
-    script.onerror = () => {
-      setError('Failed to load PayPal SDK')
-    }
-
-    document.head.appendChild(script)
-  }
-
-  const renderPayPalButton = () => {
-    if (!window.paypal) {
-      setError('PayPal SDK not loaded')
-      return
-    }
-
-    // مسح أي buttons موجودة
-    const container = document.getElementById('paypal-button-container')
-    if (container) {
-      container.innerHTML = ''
-      
-      window.paypal.Buttons({
-        createOrder: async (data: any, actions: any) => {
-          try {
-            const response = await fetch('/api/payment/paypal/create-order', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ amount })
-            })
-
-            if (!response.ok) {
-              throw new Error('Failed to create order')
-            }
-
-            const { orderID } = await response.json()
-            console.log('Order created:', orderID)
-            return orderID
-          } catch (error) {
-            console.error('Error creating order:', error)
-            setError('Failed to create PayPal order')
-            throw error
-          }
-        },
-        onApprove: async (data: any, actions: any) => {
-          try {
-            setPaymentLoading(true)
-            
-            // Capture the payment
-            const response = await fetch('/api/payment/paypal/capture-order', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ orderID: data.orderID })
-            })
-
-            const result = await response.json()
-
-            if (response.ok && result.success) {
-              // إضافة معاملة جديدة إلى الـ state المحلي
-              const newTransaction: Transaction = {
-                id: `tx_${Date.now()}`,
-                amount: amount,
-                type: 'deposit',
-                reason: 'PayPal Payment',
-                date: new Date().toISOString().split('T')[0],
-                status: 'completed'
-              }
-              
-              setTransactions(prev => [newTransaction, ...prev])
-              
-              // تحديث الرصيد المحلي
-              if (userBalance) {
-                setUserBalance(prev => prev ? { ...prev, balance: result.newBalance || (prev.balance + amount) } : null)
-              }
-              
-              setShowModal(false)
-              setError(null)
-              alert(`Payment completed successfully! New balance: ${result.newBalance?.toFixed(2) || 'Updated'}`)
-            } else {
-              throw new Error(result.error || 'Payment capture failed')
-            }
-          } catch (error: any) {
-            console.error('Payment approval error:', error)
-            setError('Payment approval failed: ' + error.message)
-          } finally {
-            setPaymentLoading(false)
-          }
-        },
-        onError: (error: any) => {
-          console.error('PayPal error:', error)
-          setError('PayPal payment failed')
-          setPaymentLoading(false)
-        },
-        onCancel: (data: any) => {
-          console.log('Payment cancelled:', data)
-          setError('Payment was cancelled')
-          setPaymentLoading(false)
-        }
-      }).render('#paypal-button-container')
-    }
-  }
-
-  // دالة إنشاء الطلب (للطرق الأخرى)
-  const createOrder = async (amount: number) => {
+  // دالة لمعالجة دفع PayPal
+  const handlePayPalPayment = async (amount: number) => {
     try {
+      // في التطبيق الحقيقي، ستحتاج لتثبيت @paypal/react-paypal-js
       const response = await fetch('/api/payment/paypal/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount })
       })
-
-      const data = await response.json()
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create order')
-      }
-
-      console.log('Order created:', data.orderID)
-      return data.orderID
+      const { orderID } = await response.json()
       
+      // هنا ستفتح نافذة PayPal للدفع
+      window.open(`https://www.sandbox.paypal.com/checkoutnow?token=${orderID}`, '_blank')
+      
+      return { success: true, orderId: orderID }
     } catch (error) {
-      console.error('Error creating order:', error)
-      throw error
+      throw new Error('PayPal payment failed')
     }
   }
 
@@ -347,11 +211,6 @@ export default function WalletPage() {
   }
 
   const handleAddBalance = async () => {
-    // إذا كان PayPal مختار، لا نفعل شيء هنا لأن الـ SDK سيتولى الأمر
-    if (selected === 0) {
-      return
-    }
-
     setPaymentLoading(true)
     setError(null)
     
@@ -360,6 +219,9 @@ export default function WalletPage() {
       let result
       
       switch (selectedMethod.type) {
+        case 'paypal':
+          result = await handlePayPalPayment(amount)
+          break
         case 'crypto':
           result = await handleCryptoPayment(amount)
           break
@@ -387,7 +249,8 @@ export default function WalletPage() {
         setTransactions(prev => [newTransaction, ...prev])
         setShowModal(false)
         
-        alert(`Payment initiated successfully! Transaction ID: ${result.invoiceId || result.sessionId}`)
+        // في التطبيق الحقيقي، سيتم تحديث الرصيد بعد تأكيد الدفع
+        alert(`Payment initiated successfully! Transaction ID: ${result.orderId || result.invoiceId || result.sessionId}`)
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Payment failed')
@@ -582,26 +445,13 @@ export default function WalletPage() {
               ))}
             </div>
             
-            {/* PayPal Button Container أو الزر العادي */}
-            {selected === 0 ? (
-              <div>
-                {paypalLoaded ? (
-                  <div id="paypal-button-container" className="w-full"></div>
-                ) : (
-                  <div className="w-full bg-gray-200 rounded p-4 text-center">
-                    Loading PayPal...
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg" 
-                onClick={handleAddBalance}
-                disabled={paymentLoading}
-              >
-                {paymentLoading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
-              </Button>
-            )}
+            <Button 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg" 
+              onClick={handleAddBalance}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+            </Button>
             
             {error && (
               <div className="mt-3 text-red-500 text-sm text-center">{error}</div>
