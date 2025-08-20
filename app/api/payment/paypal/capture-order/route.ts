@@ -1,23 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { connectToDatabase } from "@/lib/mongodb"
-import { User } from "@/models/User"
-
-const paypal = require('@paypal/checkout-server-sdk')
-
-function environment() {
-  const clientId = process.env.PAYPAL_CLIENT_ID!
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET!
-  
-  return process.env.NODE_ENV === 'production' 
-    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
-    : new paypal.core.SandboxEnvironment(clientId, clientSecret)
-}
-
-function client() {
-  return new paypal.core.PayPalHttpClient(environment())
-}
-
+// ==============================================================================
+// File: app/api/payment/paypal/capture-order/route.ts
+// ==============================================================================
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession()
@@ -26,10 +9,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderID } = await request.json()
-    
-    if (!orderID) {
-      return NextResponse.json({ error: "Order ID is required" }, { status: 400 })
-    }
     
     const captureRequest = new paypal.orders.OrdersCaptureRequest(orderID)
     captureRequest.requestBody({})
