@@ -1,6 +1,3 @@
-// ==============================================================================
-// File: app/api/payment/paypal/create-order/route.ts
-// ==============================================================================
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
         description: 'Wallet Balance Top-up'
       }],
       application_context: {
-        brand_name: 'SnowHost',
+        brand_name: 'Your App Name',
         landing_page: 'BILLING',
         user_action: 'PAY_NOW',
         return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
@@ -65,4 +62,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create PayPal order' }, { status: 500 })
   }
 }
-
