@@ -123,27 +123,25 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-  // دالة لمعالجة دفع PayPal
-  const handlePayPalPayment = async (amount: number) => {
-    try {
-      // في التطبيق الحقيقي، ستحتاج لتثبيت @paypal/react-paypal-js
-      const response = await fetch('/api/payment/paypal/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      })
-      
-      const { orderID } = await response.json()
-      
-      // هنا ستفتح نافذة PayPal للدفع
-      window.open(`https://www.sandbox.paypal.com/checkoutnow?token=${orderID}`, '_blank')
-      
-      return { success: true, orderId: orderID }
-    } catch (error) {
-      throw new Error('PayPal payment failed')
-    }
-  }
+const handlePayPalPayment = async (amount: number) => {
+  try {
+    const response = await fetch("/api/payment/paypal/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount }),
+    })
 
+    const { approvalUrl, orderID } = await response.json()
+
+    // فتح PayPal في نافذة جديدة
+    window.location.href = approvalUrl
+
+    return { success: true, orderId: orderID }
+  } catch (error) {
+    console.error(error)
+    throw new Error("PayPal payment failed")
+  }
+}
   // دالة لمعالجة دفع الكريبتو
   const handleCryptoPayment = async (amount: number) => {
     try {
@@ -462,3 +460,4 @@ export default function WalletPage() {
     </div>
   )
 }
+
