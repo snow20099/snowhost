@@ -123,10 +123,6 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-
-export default function PayButton() {
-  const [loading, setLoading] = useState(false)
-
   const handlePay = async () => {
     setLoading(true)
     const res = await fetch("/api/payment/paypal/create-order", {
@@ -475,6 +471,7 @@ export default function PayButton() {
     </div>
   )
 }
+
 
 
 
