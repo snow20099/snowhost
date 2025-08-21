@@ -123,35 +123,28 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-  const handlePay = async () => {
-    setLoading(true)
-    const res = await fetch("/api/payment/paypal/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: 10 }), // قيمة الدفع بالدولار
+export const handlePayPalPayment = async (amount: number) => {
+  try {
+    const response = await fetch('/api/payment/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
     })
-    const data = await res.json()
-
+    
+    const data = await response.json()
+    
     if (data.approvalUrl) {
-      // هنا نحول المستخدم إلى صفحة الدفع الخاصة بـ PayPal
+      // فتح صفحة الدفع الرسمية من PayPal
       window.location.href = data.approvalUrl
     } else {
-      alert("فشل إنشاء الطلب")
+      console.error('Approval URL not found in response:', data)
+      alert('Failed to get PayPal approval URL')
     }
-    setLoading(false)
+  } catch (error) {
+    console.error('PayPal payment failed:', error)
+    alert('PayPal payment failed')
   }
-
-  return (
-    <button 
-      onClick={handlePay} 
-      disabled={loading}
-      className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-    >
-      {loading ? "جارٍ التحويل..." : "ادفع الآن"}
-    </button>
-  )
 }
-
 
   // دالة لمعالجة دفع الكريبتو
   const handleCryptoPayment = async (amount: number) => {
@@ -471,6 +464,7 @@ export default function WalletPage() {
     </div>
   )
 }
+
 
 
 
