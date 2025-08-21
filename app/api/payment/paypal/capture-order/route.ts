@@ -1,6 +1,12 @@
 // ==============================================================================
 // File: app/api/payment/paypal/capture-order/route.ts
 // ==============================================================================
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { client, paypal } from "@/lib/paypal"
+import { connectToDatabase } from "@/lib/mongodb"
+import User from "@/models/User"
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession()
@@ -9,20 +15,25 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderID } = await request.json()
-    
+    if (!orderID) {
+      return NextResponse.json({ error: "Missing orderID" }, { status: 400 })
+    }
+
     const captureRequest = new paypal.orders.OrdersCaptureRequest(orderID)
     captureRequest.requestBody({})
-    
+
     const capture = await client().execute(captureRequest)
-    
-    if (capture.result.status === 'COMPLETED') {
-      const amount = parseFloat(capture.result.purchase_units[0].payments.captures[0].amount.value)
-      
+
+    if (capture.result.status === "COMPLETED") {
+      const amount = parseFloat(
+        capture.result.purchase_units[0].payments.captures[0].amount.value
+      )
+
       // تحديث رصيد المستخدم
       await connectToDatabase()
       await User.findOneAndUpdate(
         { email: session.user.email },
-        { 
+        {
           $inc: { balance: amount },
           $push: {
             transactions: {
@@ -33,24 +44,23 @@ export async function POST(request: NextRequest) {
               method: "PayPal",
               status: "completed",
               reason: "PayPal Payment",
-              date: new Date()
-            }
-          }
+              date: new Date(),
+            },
+          },
         }
       )
-      
+
       return NextResponse.json({
         success: true,
         captureId: capture.result.id,
         amount: amount,
-        status: 'completed'
+        status: "completed",
       })
     }
 
-    return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
-
+    return NextResponse.json({ error: "Payment not completed" }, { status: 400 })
   } catch (error) {
-    console.error('PayPal capture error:', error)
-    return NextResponse.json({ error: 'Failed to capture PayPal payment' }, { status: 500 })
+    console.error("PayPal capture error:", error)
+    return NextResponse.json({ error: "Failed to capture PayPal payment" }, { status: 500 })
   }
 }
