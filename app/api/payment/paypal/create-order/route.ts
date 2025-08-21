@@ -1,22 +1,26 @@
 // ==============================================================================
 // File: app/api/payment/paypal/create-order/route.ts
 // ==============================================================================
+
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { client, paypal } from "@/lib/paypal"
 
 export async function POST(request: NextRequest) {
   try {
+    // التحقق من الجلسة
     const session = await getServerSession()
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // الحصول على المبلغ من الريكوست
     const { amount } = await request.json()
     if (!amount || amount < 1) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
 
+    // إنشاء طلب الدفع عند PayPal
     const orderRequest = new paypal.orders.OrdersCreateRequest()
     orderRequest.prefer("return=representation")
     orderRequest.requestBody({
@@ -40,8 +44,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // تنفيذ الطلب عبر PayPal
     const order = await client().execute(orderRequest)
 
+    // إرجاع Order ID ورابط الدفع الجاهز
     return NextResponse.json({
       orderID: order.result.id,
       approvalUrl: order.result.links.find((link: any) => link.rel === "approve").href,
