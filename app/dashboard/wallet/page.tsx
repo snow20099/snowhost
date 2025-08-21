@@ -123,7 +123,7 @@ export default function WalletPage() {
     fetchBalance()
   }, [])
 
-export const handlePayPalPayment = async (amount: number) => {
+const handlePayPalPayment = async (amount: number) => {
   try {
     const response = await fetch('/api/payment/paypal/create-order', {
       method: 'POST',
@@ -134,15 +134,11 @@ export const handlePayPalPayment = async (amount: number) => {
     const data = await response.json()
     
     if (data.approvalUrl) {
-      // فتح صفحة الدفع الرسمية من PayPal
-      window.location.href = data.approvalUrl
-    } else {
-      console.error('Approval URL not found in response:', data)
-      alert('Failed to get PayPal approval URL')
+      window.location.href = data.approvalUrl // هنا يفتح رابط PayPal الرسمي
     }
   } catch (error) {
-    console.error('PayPal payment failed:', error)
-    alert('PayPal payment failed')
+    console.error(error)
+    alert("PayPal payment failed")
   }
 }
 
@@ -464,6 +460,7 @@ export const handlePayPalPayment = async (amount: number) => {
     </div>
   )
 }
+
 
 
 
