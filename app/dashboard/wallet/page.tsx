@@ -131,17 +131,16 @@ const handlePayPalPayment = async (amount: number) => {
       body: JSON.stringify({ amount }),
     })
 
-    const { approvalUrl, orderID } = await response.json()
+    const { approvalUrl } = await response.json()
 
-    // فتح PayPal في نافذة جديدة
+    // 👇 هنا توديه على PayPal مباشرة
     window.location.href = approvalUrl
-
-    return { success: true, orderId: orderID }
   } catch (error) {
     console.error(error)
-    throw new Error("PayPal payment failed")
+    alert("فشل إنشاء رابط الدفع")
   }
 }
+
   // دالة لمعالجة دفع الكريبتو
   const handleCryptoPayment = async (amount: number) => {
     try {
@@ -460,4 +459,5 @@ const handlePayPalPayment = async (amount: number) => {
     </div>
   )
 }
+
 
