@@ -1,21 +1,17 @@
 // app/api/user/servers/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
-// import your database client and auth config here
-// import { prisma } from '@/lib/prisma'
-// import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma' // Your database client
+import { authOptions } from '@/lib/auth' // Your auth configuration
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user session - replace with your auth method
-    // const session = await getServerSession(authOptions)
-    // if (!session?.user?.id) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-    // const userId = session.user.id
-
-    // For now, we'll use a mock userId - replace this with actual session
-    const userId = "user123" // Replace with actual user ID from session
+    // Get authenticated user session
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
     const months = parseInt(searchParams.get('months') || '6')
@@ -45,8 +41,7 @@ export async function GET(request: NextRequest) {
     
     const monthsData = getLastNMonths(months)
     
-    // Replace with actual database queries for user-specific data
-    /*
+    // Get real data from database for each month
     const userServerData = await Promise.all(
       monthsData.map(async ({ month, startDate, endDate }) => {
         // Active servers count for this user in this month
@@ -88,7 +83,7 @@ export async function GET(request: NextRequest) {
           }
         })
         
-        const spending = spendingResult._sum.amount || 0
+        const spending = Number(spendingResult._sum.amount || 0)
         
         return {
           month,
@@ -98,17 +93,6 @@ export async function GET(request: NextRequest) {
         }
       })
     )
-    */
-    
-    // Mock data for demonstration - replace with actual database queries above
-    const userServerData = [
-      { month: 'Feb', activeServers: 3, inactiveServers: 1, spending: 650 },
-      { month: 'Mar', activeServers: 4, inactiveServers: 1, spending: 720 },
-      { month: 'Apr', activeServers: 4, inactiveServers: 2, spending: 680 },
-      { month: 'May', activeServers: 5, inactiveServers: 1, spending: 780 },
-      { month: 'Jun', activeServers: 5, inactiveServers: 2, spending: 850 },
-      { month: 'Jul', activeServers: 5, inactiveServers: 2, spending: 850 }
-    ]
     
     return NextResponse.json(userServerData)
     
@@ -121,43 +105,209 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Get specific server details for the user
+// Get user's server list with pagination
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
+
     const body = await request.json()
-    const { serverId, action } = body
+    const { 
+      action, 
+      serverId, 
+      page = 1, 
+      limit = 10,
+      status = 'all',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = body
     
-    // Handle specific server actions like start, stop, restart, etc.
-    switch (action) {
-      case 'start':
-        // Start server logic
-        break
-        
-      case 'stop':
-        // Stop server logic
-        break
-        
-      case 'restart':
-        // Restart server logic
-        break
-        
-      case 'delete':
-        // Delete server logic
-        break
-        
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        )
+    // Handle server actions
+    if (action && serverId) {
+      switch (action) {
+        case 'start':
+          await prisma.server.update({
+            where: {
+              id: serverId,
+              userId: userId // Ensure user owns this server
+            },
+            data: {
+              status: 'active',
+              updatedAt: new Date()
+            }
+          })
+          
+          // Log the action
+          await prisma.serverLog.create({
+            data: {
+              serverId,
+              userId,
+              action: 'start',
+              description: 'Server started by user'
+            }
+          })
+          
+          return NextResponse.json({ 
+            message: 'Server started successfully', 
+            serverId, 
+            action 
+          })
+          
+        case 'stop':
+          await prisma.server.update({
+            where: {
+              id: serverId,
+              userId: userId
+            },
+            data: {
+              status: 'inactive',
+              updatedAt: new Date()
+            }
+          })
+          
+          await prisma.serverLog.create({
+            data: {
+              serverId,
+              userId,
+              action: 'stop',
+              description: 'Server stopped by user'
+            }
+          })
+          
+          return NextResponse.json({ 
+            message: 'Server stopped successfully', 
+            serverId, 
+            action 
+          })
+          
+        case 'restart':
+          // First stop, then start
+          await prisma.server.update({
+            where: {
+              id: serverId,
+              userId: userId
+            },
+            data: {
+              status: 'restarting',
+              updatedAt: new Date()
+            }
+          })
+          
+          // Simulate restart delay, then set to active
+          setTimeout(async () => {
+            await prisma.server.update({
+              where: { id: serverId },
+              data: { status: 'active' }
+            })
+          }, 5000)
+          
+          await prisma.serverLog.create({
+            data: {
+              serverId,
+              userId,
+              action: 'restart',
+              description: 'Server restarted by user'
+            }
+          })
+          
+          return NextResponse.json({ 
+            message: 'Server restart initiated', 
+            serverId, 
+            action 
+          })
+          
+        case 'delete':
+          // Soft delete or hard delete based on your business logic
+          await prisma.server.update({
+            where: {
+              id: serverId,
+              userId: userId
+            },
+            data: {
+              status: 'deleted',
+              deletedAt: new Date(),
+              updatedAt: new Date()
+            }
+          })
+          
+          await prisma.serverLog.create({
+            data: {
+              serverId,
+              userId,
+              action: 'delete',
+              description: 'Server deleted by user'
+            }
+          })
+          
+          return NextResponse.json({ 
+            message: 'Server deleted successfully', 
+            serverId, 
+            action 
+          })
+          
+        default:
+          return NextResponse.json(
+            { error: 'Invalid action' },
+            { status: 400 }
+          )
+      }
     }
     
-    // Return updated server status
-    return NextResponse.json({ message: 'Server action completed', serverId, action })
+    // Handle server list retrieval with pagination
+    const skip = (page - 1) * limit
+    
+    // Build where clause based on status filter
+    const whereClause: any = {
+      userId: userId,
+      deletedAt: null // Exclude soft-deleted servers
+    }
+    
+    if (status !== 'all') {
+      whereClause.status = status
+    }
+    
+    // Get user's servers with pagination
+    const servers = await prisma.server.findMany({
+      where: whereClause,
+      orderBy: {
+        [sortBy]: sortOrder
+      },
+      skip,
+      take: limit,
+      include: {
+        _count: {
+          select: {
+            serverLogs: true
+          }
+        }
+      }
+    })
+    
+    // Get total count for pagination
+    const totalServers = await prisma.server.count({
+      where: whereClause
+    })
+    
+    const totalPages = Math.ceil(totalServers / limit)
+    
+    return NextResponse.json({
+      servers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalServers,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    })
     
   } catch (error) {
+    console.error('Server action/list error:', error)
     return NextResponse.json(
-      { error: 'Server action failed' },
+      { error: 'Server operation failed' },
       { status: 500 }
     )
   }
