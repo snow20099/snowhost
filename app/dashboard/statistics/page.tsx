@@ -5,46 +5,52 @@ import { BarChart3, Users, ShoppingCart, Server, TrendingUp, TrendingDown } from
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { useEffect, useState } from 'react'
 
-// Simulated API data - replace with your actual API endpoints
+// Real API functions - connected to your backend
 const fetchStatistics = async () => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  return {
-    orders: {
-      current: 1247,
-      previous: 1089,
-      percentage: 14.5
-    },
-    users: {
-      current: 3428,
-      previous: 3201,
-      percentage: 7.1
-    },
-    servers: {
-      current: 12,
-      previous: 15,
-      percentage: -20
-    },
-    revenue: {
-      current: 28450,
-      previous: 24200,
-      percentage: 17.6
+  try {
+    const response = await fetch('/api/statistics', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching statistics:', error)
+    // Fallback data in case of API failure
+    return {
+      orders: { current: 0, previous: 0, percentage: 0 },
+      users: { current: 0, previous: 0, percentage: 0 },
+      servers: { current: 0, previous: 0, percentage: 0 },
+      revenue: { current: 0, previous: 0, percentage: 0 }
     }
   }
 }
 
 const fetchChartData = async () => {
-  await new Promise(resolve => setTimeout(resolve, 800))
-  
-  return [
-    { month: 'Jan', users: 2400, orders: 890, revenue: 18200 },
-    { month: 'Feb', users: 2680, orders: 920, revenue: 19800 },
-    { month: 'Mar', users: 2890, orders: 1100, revenue: 22400 },
-    { month: 'Apr', users: 3100, orders: 980, revenue: 21200 },
-    { month: 'May', users: 3250, orders: 1150, revenue: 25600 },
-    { month: 'Jun', users: 3428, orders: 1247, revenue: 28450 }
-  ]
+  try {
+    const response = await fetch('/api/statistics/chart?months=6', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching chart data:', error)
+    // Fallback data in case of API failure
+    return []
+  }
 }
 
 interface StatData {
