@@ -1,4 +1,3 @@
-app/dashboard/statistics/page.tsx
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { BarChart3, Users, ShoppingCart, Server } from "lucide-react"
 export default function StatisticsPage() {
@@ -80,3 +79,4 @@ export default function StatisticsPage() {
     </div>
   )
 }
+
