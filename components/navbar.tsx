@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,9 +24,59 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from "lucide-react"
 import { DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { listenToProfileUpdates } from "@/utilities/events"
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const { data: session, status } = useSession()
+  const { data: session, status, update: updateSession } = useSession()
+  const [currentProfileImage, setCurrentProfileImage] = useState<string>("")
+  const [currentUserName, setCurrentUserName] = useState<string>("")
+
+  useEffect(() => {
+    // تحميل البيانات المحفوظة عند البداية
+    const savedImage = localStorage.getItem('profileImage')
+    const savedProfile = localStorage.getItem('userProfile')
+    
+    if (savedImage && savedImage !== "/placeholder-user.jpg") {
+      setCurrentProfileImage(savedImage)
+    }
+    
+    if (savedProfile) {
+      const profile = JSON.parse(savedProfile)
+      if (profile.name) {
+        setCurrentUserName(profile.name)
+      }
+    }
+
+    // الاستماع لتحديثات الملف الشخصي
+    const unsubscribe = listenToProfileUpdates(async (data) => {
+      if (data.image) {
+        setCurrentProfileImage(data.image)
+      }
+      
+      if (data.name) {
+        setCurrentUserName(data.name)
+      }
+      
+      // تحديث الجلسة مع البيانات الجديدة
+      if (data.name || data.image) {
+        await updateSession({
+          ...session,
+          user: {
+            ...session?.user,
+            name: data.name || session?.user?.name,
+            image: data.image !== "/placeholder-user.jpg" ? data.image : (data.image === "/placeholder-user.jpg" ? null : session?.user?.image)
+          }
+        })
+      }
+    })
+
+    return unsubscribe
+  }, [session, updateSession])
+
+  // استخدام البيانات المحدثة في العرض
+  const displayName = currentUserName || session?.user?.name || session?.user?.email
+  const displayImage = currentProfileImage || session?.user?.image
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -104,11 +154,14 @@ export default function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || session?.user?.email || "User"} />
-                  <AvatarFallback>{session?.user?.name?.[0] || session?.user?.email?.[0] || "U"}</AvatarFallback>
+                  <AvatarImage 
+                    src={displayImage || undefined} 
+                    alt={displayName || "User"} 
+                  />
+                  <AvatarFallback>{displayName?.[0] || "U"}</AvatarFallback>
                 </Avatar>
                 <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium">{session?.user?.name || session?.user?.email}</span>
+                  <span className="text-sm font-medium">{displayName}</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </Button>
@@ -160,6 +213,24 @@ export default function Navbar() {
                 <SearchDialog />
                 <ThemeToggle />
               </div>
+              
+              {/* إضافة معلومات المستخدم في القائمة الجانبية للموبايل */}
+              {session && (
+                <div className="flex items-center gap-3 p-3 border border-border rounded-md bg-muted/30">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage 
+                      src={displayImage || undefined} 
+                      alt={displayName || "User"} 
+                    />
+                    <AvatarFallback>{displayName?.[0] || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{displayName}</span>
+                    <span className="text-xs text-muted-foreground">{session.user?.email}</span>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex flex-col space-y-3">
                 <div className="flex flex-col space-y-3 border-b border-border pb-4">
                   <h4 className="font-medium text-muted-foreground">Services</h4>
@@ -193,15 +264,39 @@ export default function Navbar() {
                   Contact
                 </Link>
               </div>
+              
               <div className="flex flex-col gap-2 mt-auto">
-                <Link href="/login" onClick={() => setIsOpen(false)}>
-                  <Button variant="outline" className="w-full">
-                    Log In
-                  </Button>
-                </Link>
-                <Link href="/signup" onClick={() => setIsOpen(false)}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Sign Up</Button>
-                </Link>
+                {session ? (
+                  <>
+                    <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full">Dashboard</Button>
+                    </Link>
+                    <Link href="/dashboard/settings" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full">Settings</Button>
+                    </Link>
+                    <Button 
+                      variant="destructive" 
+                      className="w-full"
+                      onClick={() => {
+                        setIsOpen(false)
+                        signOut({ callbackUrl: "/" })
+                      }}
+                    >
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full">
+                        Log In
+                      </Button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Sign Up</Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </SheetContent>
@@ -240,4 +335,3 @@ const ListItem = React.forwardRef<
   )
 })
 ListItem.displayName = "ListItem"
-
