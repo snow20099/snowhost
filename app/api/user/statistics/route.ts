@@ -1,21 +1,17 @@
 // app/api/user/statistics/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
-// import your database client and auth config here
-// import { prisma } from '@/lib/prisma'
-// import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma' // Your database client
+import { authOptions } from '@/lib/auth' // Your auth configuration
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user session - replace with your auth method
-    // const session = await getServerSession(authOptions)
-    // if (!session?.user?.id) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-    // const userId = session.user.id
-
-    // For now, we'll use a mock userId - replace this with actual session
-    const userId = "user123" // Replace with actual user ID from session
+    // Get authenticated user session
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
 
     // Get current date ranges
     const now = new Date()
@@ -23,10 +19,6 @@ export async function GET(request: NextRequest) {
     const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
     
-    // Replace with your actual database queries
-    // Example using Prisma (adapt to your database):
-    
-    /*
     // Current month active servers for this user
     const currentActiveServers = await prisma.server.count({
       where: {
@@ -126,20 +118,15 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-    */
     
-    // Mock data for demonstration - replace with actual database queries above
-    const currentActiveServers = 5
-    const previousActiveServers = 4
-    const currentInactiveServers = 2
-    const previousInactiveServers = 3
-    const currentMonthSpendingAmount = 850
-    const previousMonthSpendingAmount = 720
-    const totalSpendingAmount = 12500
-    const previousTotalSpendingAmount = 11650
+    // Extract values with null safety
+    const currentMonthSpendingAmount = currentMonthSpending._sum.amount || 0
+    const previousMonthSpendingAmount = previousMonthSpending._sum.amount || 0
+    const totalSpendingAmount = totalSpending._sum.amount || 0
+    const previousTotalSpendingAmount = previousTotalSpending._sum.amount || 0
     
     // Calculate percentages
-    const calculatePercentage = (current: number, previous: number) => {
+    const calculatePercentage = (current: number, previous: number): number => {
       if (previous === 0) return current > 0 ? 100 : 0
       return Math.round(((current - previous) / previous) * 100 * 10) / 10
     }
@@ -156,14 +143,14 @@ export async function GET(request: NextRequest) {
         percentage: calculatePercentage(currentInactiveServers, previousInactiveServers)
       },
       monthlySpent: {
-        current: currentMonthSpendingAmount,
-        previous: previousMonthSpendingAmount,
-        percentage: calculatePercentage(currentMonthSpendingAmount, previousMonthSpendingAmount)
+        current: Number(currentMonthSpendingAmount),
+        previous: Number(previousMonthSpendingAmount),
+        percentage: calculatePercentage(Number(currentMonthSpendingAmount), Number(previousMonthSpendingAmount))
       },
       totalSpent: {
-        current: totalSpendingAmount,
-        previous: previousTotalSpendingAmount,
-        percentage: calculatePercentage(totalSpendingAmount, previousTotalSpendingAmount)
+        current: Number(totalSpendingAmount),
+        previous: Number(previousTotalSpendingAmount),
+        percentage: calculatePercentage(Number(totalSpendingAmount), Number(previousTotalSpendingAmount))
       }
     }
     
@@ -178,21 +165,82 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Custom date range endpoint for user statistics
 export async function POST(request: NextRequest) {
   try {
-    // Handle custom date range requests for user statistics
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
+
     const body = await request.json()
-    const { startDate, endDate, userId } = body
+    const { startDate, endDate } = body
     
-    // Add custom date range logic here for user-specific data
-    // This is useful for filtering user statistics by specific date ranges
+    if (!startDate || !endDate) {
+      return NextResponse.json(
+        { error: 'Start date and end date are required' },
+        { status: 400 }
+      )
+    }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
     
-    return NextResponse.json({ message: 'Custom user date range not implemented yet' })
+    // Get data for custom date range
+    const customActiveServers = await prisma.server.count({
+      where: {
+        userId: userId,
+        status: 'active',
+        createdAt: {
+          gte: start,
+          lte: end
+        }
+      }
+    })
+    
+    const customInactiveServers = await prisma.server.count({
+      where: {
+        userId: userId,
+        status: 'inactive',
+        createdAt: {
+          gte: start,
+          lte: end
+        }
+      }
+    })
+    
+    const customSpending = await prisma.payment.aggregate({
+      _sum: {
+        amount: true
+      },
+      where: {
+        userId: userId,
+        status: 'completed',
+        createdAt: {
+          gte: start,
+          lte: end
+        }
+      }
+    })
+    
+    const customRangeData = {
+      activeServers: customActiveServers,
+      inactiveServers: customInactiveServers,
+      totalSpending: Number(customSpending._sum.amount || 0),
+      dateRange: {
+        start: start.toISOString(),
+        end: end.toISOString()
+      }
+    }
+    
+    return NextResponse.json(customRangeData)
     
   } catch (error) {
+    console.error('Custom date range error:', error)
     return NextResponse.json(
-      { error: 'Invalid request' },
-      { status: 400 }
+      { error: 'Failed to fetch custom range data' },
+      { status: 500 }
     )
   }
 }
