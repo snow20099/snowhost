@@ -1,191 +1,111 @@
-// prisma/schema.prisma
-// This is your Prisma schema file for the user statistics system
+// lib/prisma.ts
+// Prisma client setup with connection pooling and error handling
 
-generator client {
-  provider = "prisma-client-js"
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-datasource db {
-  provider = "mysql" // or "postgresql", "sqlite", etc.
-  url      = env("DATABASE_URL")
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query', 'error', 'warn'],
+    errorFormat: 'pretty',
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// Connection health check
+export async function checkDatabaseConnection() {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    return { connected: true, message: 'Database connected successfully' }
+  } catch (error) {
+    console.error('Database connection error:', error)
+    return { 
+      connected: false, 
+      message: 'Database connection failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
 }
 
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  password      String?   // For local auth
-  provider      String?   // 'local', 'google', 'github', etc.
-  providerId    String?   @map("provider_id")
-  avatarUrl     String?   @map("avatar_url")
-  emailVerified Boolean   @default(false) @map("email_verified")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  servers       Server[]
-  payments      Payment[]
-  serverLogs    ServerLog[]
-  subscriptions UserSubscription[]
-  
-  @@index([email])
-  @@index([provider, providerId])
-  @@map("users")
+// Graceful shutdown
+export async function disconnectDatabase() {
+  try {
+    await prisma.$disconnect()
+    console.log('Database disconnected successfully')
+  } catch (error) {
+    console.error('Error disconnecting from database:', error)
+  }
 }
 
-model Server {
-  id          String      @id @default(cuid())
-  userId      String      @map("user_id")
-  name        String
-  description String?
-  status      ServerStatus @default(PENDING)
-  serverType  String?     @map("server_type")
-  plan        String?
-  region      String?
-  ipAddress   String?     @map("ip_address")
-  monthlyCost Decimal     @default(0.00) @map("monthly_cost") @db.Decimal(10,2)
-  specs       Json?       // Server specifications
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  deletedAt   DateTime?   @map("deleted_at")
-  
-  // Relations
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments    Payment[]
-  serverLogs  ServerLog[]
-  metrics     ServerMetric[]
-  
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([userId, status])
-  @@map("servers")
+// User statistics helper functions
+export class UserStatsService {
+  static async getUserServerStats(userId: string, startDate: Date, endDate: Date) {
+    return await prisma.server.groupBy({
+      by: ['status'],
+      where: {
+        userId,
+        createdAt: {
+          gte: startDate,
+          lte: endDate
+        },
+        deletedAt: null
+      },
+      _count: {
+        id: true
+      }
+    })
+  }
+
+  static async getUserSpending(userId: string, startDate: Date, endDate: Date) {
+    return await prisma.payment.aggregate({
+      _sum: {
+        amount: true
+      },
+      _count: {
+        id: true
+      },
+      where: {
+        userId,
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate
+        }
+      }
+    })
+  }
+
+  static async getUserMonthlyData(userId: string, months: number = 6) {
+    const monthsData = []
+    const now = new Date()
+    
+    for (let i = months - 1; i >= 0; i--) {
+      const startDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const endDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 0)
+      
+      const [serverStats, spending] = await Promise.all([
+        this.getUserServerStats(userId, startDate, endDate),
+        this.getUserSpending(userId, startDate, endDate)
+      ])
+
+      const activeServers = serverStats.find(s => s.status === 'ACTIVE')?._count.id || 0
+      const inactiveServers = serverStats.find(s => s.status === 'INACTIVE')?._count.id || 0
+      
+      monthsData.push({
+        month: startDate.toLocaleDateString('en', { month: 'short' }),
+        year: startDate.getFullYear(),
+        activeServers,
+        inactiveServers,
+        spending: Number(spending._sum.amount || 0)
+      })
+    }
+    
+    return monthsData
+  }
 }
 
-model Payment {
-  id            String        @id @default(cuid())
-  userId        String        @map("user_id")
-  serverId      String?       @map("server_id")
-  amount        Decimal       @db.Decimal(10,2)
-  currency      String        @default("SAR")
-  status        PaymentStatus @default(PENDING)
-  paymentMethod String?       @map("payment_method")
-  transactionId String?       @map("transaction_id")
-  gateway       String?
-  description   String?
-  invoiceNumber String?       @map("invoice_number")
-  paidAt        DateTime?     @map("paid_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-  
-  // Relations
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  server        Server?       @relation(fields: [serverId], references: [id], onDelete: SetNull)
-  
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([userId, status])
-  @@index([userId, createdAt])
-  @@map("payments")
-}
-
-model ServerLog {
-  id          String   @id @default(cuid())
-  serverId    String   @map("server_id")
-  userId      String   @map("user_id")
-  action      String
-  description String?
-  metadata    Json?
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  // Relations
-  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([serverId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([action])
-  @@map("server_logs")
-}
-
-model ServerMetric {
-  id           String   @id @default(cuid())
-  serverId     String   @map("server_id")
-  cpuUsage     Decimal? @map("cpu_usage") @db.Decimal(5,2)
-  memoryUsage  Decimal? @map("memory_usage") @db.Decimal(5,2)
-  diskUsage    Decimal? @map("disk_usage") @db.Decimal(5,2)
-  networkIn    BigInt?  @map("network_in")
-  networkOut   BigInt?  @map("network_out")
-  uptime       BigInt?
-  responseTime Decimal? @map("response_time") @db.Decimal(8,2)
-  recordedAt   DateTime @default(now()) @map("recorded_at")
-  
-  // Relations
-  server       Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  
-  @@index([serverId])
-  @@index([recordedAt])
-  @@index([serverId, recordedAt])
-  @@map("server_metrics")
-}
-
-model UserSubscription {
-  id                  String             @id @default(cuid())
-  userId              String             @map("user_id")
-  planName            String             @map("plan_name")
-  planPrice           Decimal            @map("plan_price") @db.Decimal(10,2)
-  currency            String             @default("SAR")
-  status              SubscriptionStatus @default(ACTIVE)
-  billingCycle        BillingCycle       @default(MONTHLY) @map("billing_cycle")
-  currentPeriodStart  DateTime           @map("current_period_start")
-  currentPeriodEnd    DateTime           @map("current_period_end")
-  nextBillingDate     DateTime?          @map("next_billing_date")
-  subscriptionId      String?            @map("subscription_id")
-  gateway             String?
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
-  cancelledAt         DateTime?          @map("cancelled_at")
-  
-  // Relations
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId])
-  @@index([status])
-  @@index([nextBillingDate])
-  @@map("user_subscriptions")
-}
-
-// Enums
-enum ServerStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
-  ERROR
-  RESTARTING
-  DELETED
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  CANCELLED
-  REFUNDED
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELLED
-  EXPIRED
-  SUSPENDED
-}
-
-enum BillingCycle {
-  MONTHLY
-  YEARLY
-  ONE_TIME
-}
+export default prisma
