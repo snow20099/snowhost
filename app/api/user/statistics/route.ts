@@ -1,29 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from "next-auth/next"
+import dbConnect from '@/lib/mongoose'
+import User from '@/models/User'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { connectDB } from '@/lib/mongoose'
-import { Server } from '@/models/Server'
-import { Payment } from '@/models/Payment'
 
 export async function GET(req: NextRequest) {
-  try {
-    await connectDB()
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await dbConnect()
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const userId = session.user.id
-    const now = new Date()
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+  const user = await User.findOne({ email: session.user.email })
 
-    const count = async (status: string, start: Date, end?: Date) => {
-      return await Server.countDocuments({
-        userId,
-        status,
-        createdAt: { $gte: start, ...(end ? { $lt: end } : {}) }
-      })
-    }
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+  // احسب الخوادم النشطة وغير النشطة من user.servers
+  const activeServers = user.servers.filter(s => s.status === 'active').length
+  const inactiveServers = user.servers.filter(s => s.status !== 'active').length
+  const totalSpent = user.transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0)
+
+  return NextResponse.json({
+    activeServers,
+    inactiveServers,
+    totalSpent
+  })
+}
+
 
     const sumPayments = async (start?: Date, end?: Date) => {
       const payments = await Payment.aggregate([
