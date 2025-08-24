@@ -4,82 +4,157 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, ChangeEvent, FormEvent } from "react"
+import { useState, ChangeEvent, FormEvent, useEffect } from "react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Save, Upload, RotateCcw, Bell, Shield, Palette } from "lucide-react"
+import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield, Palette, Globe, Bell, Cpu, HardDrive, Network, Server } from "lucide-react"
 
-// أنواع TypeScript للبيانات
+// أنواع TypeScript للبيانات المستندة إلى نموذج MongoDB
 interface UserProfile {
-  profilePic: string;
-  firstName: string;
-  lastName: string;
-  username: string;
+  _id?: string;
+  name: string;
   email: string;
   phone: string;
-}
-
-interface AppSettings {
-  language: string;
-  notifications: boolean;
-  darkMode: boolean;
-  autoUpdate: boolean;
+  country: string;
+  timezone: string;
+  balance: number;
+  currency: string;
+  accountType: string;
+  servers: any[];
+  invoices: any[];
+  resourceUsage: {
+    cpu: number;
+    memory: number;
+    storage: number;
+    network: number;
+    totalStorage: number;
+    totalMemory: number;
+    totalNetwork: number;
+    lastUpdated: Date;
+  };
+  preferences: {
+    theme: string;
+    language: string;
+    notifications: boolean;
+    autoUpdate: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export default function SettingsPage() {
   // حالة بيانات المستخدم
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    profilePic: "/placeholder-user.jpg",
-    firstName: "محمد",
-    lastName: "عمر",
-    username: "ps_xx",
-    email: "medabouomar02@outlook.com",
-    phone: "+966 123 456 789"
-  });
-
-  // حالة إعدادات التطبيق
-  const [appSettings, setAppSettings] = useState<AppSettings>({
-    language: "ar",
-    notifications: true,
-    darkMode: false,
-    autoUpdate: true
-  });
-
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  
   // حالة التحميل
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+
+  // جلب بيانات المستخدم عند تحميل المكون
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  // دالة لجلب بيانات المستخدم من API
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/user/profile');
+      
+      if (!response.ok) {
+        throw new Error('فشل في جلب بيانات المستخدم');
+      }
+      
+      const userData = await response.json();
+      setUserProfile(userData);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      toast.error("فشل في تحميل بيانات الملف الشخصي");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // معالج تحديث البيانات الشخصية
   const handleProfileUpdate = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // محاكاة طلب API
+    if (!userProfile) return;
+    
+    setIsUpdating(true);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: userProfile.name,
+          phone: userProfile.phone,
+          country: userProfile.country,
+          timezone: userProfile.timezone,
+          theme: userProfile.preferences.theme,
+          language: userProfile.preferences.language,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في تحديث البيانات');
+      }
+      
+      const updatedUser = await response.json();
+      setUserProfile(updatedUser);
       toast.success("تم تحديث الملف الشخصي بنجاح");
     } catch (error) {
+      console.error("Update error:", error);
       toast.error("فشل في تحديث الملف الشخصي");
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
 
   // معالج تحديث الإعدادات
   const handleSettingsUpdate = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // محاكاة طلب API
+    if (!userProfile) return;
+    
+    setIsUpdating(true);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: userProfile.name,
+          phone: userProfile.phone,
+          country: userProfile.country,
+          timezone: userProfile.timezone,
+          theme: userProfile.preferences.theme,
+          language: userProfile.preferences.language,
+          notifications: userProfile.preferences.notifications,
+          autoUpdate: userProfile.preferences.autoUpdate,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في تحديث الإعدادات');
+      }
+      
+      const updatedUser = await response.json();
+      setUserProfile(updatedUser);
       toast.success("تم حفظ الإعدادات بنجاح");
     } catch (error) {
+      console.error("Update error:", error);
       toast.error("فشل في حفظ الإعدادات");
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
 
@@ -94,10 +169,7 @@ export default function SettingsPage() {
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUserProfile(prev => ({
-          ...prev,
-          profilePic: e.target?.result as string
-        }));
+        // هنا يمكنك إضافة كود لرفع الصورة إلى الخادم
         toast.success("تم تحميل الصورة بنجاح");
       };
       reader.readAsDataURL(file);
@@ -105,20 +177,54 @@ export default function SettingsPage() {
   };
 
   // معالج تغيير بيانات المستخدم
-  const handleProfileChange = (field: keyof UserProfile, value: string) => {
-    setUserProfile(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleProfileChange = (field: keyof UserProfile, value: any) => {
+    if (userProfile) {
+      setUserProfile(prev => ({
+        ...prev!,
+        [field]: value
+      }));
+    }
   };
 
-  // معالج تغيير الإعدادات
-  const handleSettingChange = (field: keyof AppSettings, value: boolean | string) => {
-    setAppSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  // معالج تغيير التفضيلات
+  const handlePreferenceChange = (field: keyof UserProfile['preferences'], value: any) => {
+    if (userProfile) {
+      setUserProfile(prev => ({
+        ...prev!,
+        preferences: {
+          ...prev!.preferences,
+          [field]: value
+        }
+      }));
+    }
   };
+
+  // عرض حالة التحميل
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2">جاري تحميل البيانات...</span>
+      </div>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <p className="text-destructive">فشل في تحميل بيانات المستخدم</p>
+              <Button onClick={fetchUserProfile} className="mt-4">
+                إعادة المحاولة
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 p-6">
@@ -137,9 +243,9 @@ export default function SettingsPage() {
             <Settings className="w-4 h-4" />
             الإعدادات
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            الأمان
+          <TabsTrigger value="resources" className="flex items-center gap-2">
+            <Server className="w-4 h-4" />
+            موارد الخادم
           </TabsTrigger>
         </TabsList>
 
@@ -153,9 +259,9 @@ export default function SettingsPage() {
               <form onSubmit={handleProfileUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div className="flex flex-col items-center gap-4 md:col-span-2">
                   <Avatar className="w-24 h-24 border-2 border-primary">
-                    <AvatarImage src={userProfile.profilePic} alt="Profile" />
+                    <AvatarImage src="/placeholder-user.jpg" alt="Profile" />
                     <AvatarFallback className="text-2xl">
-                      {userProfile.firstName[0]}{userProfile.lastName[0]}
+                      {userProfile.name ? userProfile.name[0] : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex gap-2">
@@ -175,7 +281,6 @@ export default function SettingsPage() {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => handleProfileChange("profilePic", "/placeholder-user.jpg")}
                       className="flex items-center gap-2"
                     >
                       <RotateCcw className="w-4 h-4" />
@@ -186,11 +291,11 @@ export default function SettingsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="username">اسم المستخدم</Label>
+                  <Label htmlFor="name">الاسم الكامل</Label>
                   <Input
-                    id="username"
-                    value={userProfile.username}
-                    onChange={e => handleProfileChange("username", e.target.value)}
+                    id="name"
+                    value={userProfile.name || ''}
+                    onChange={e => handleProfileChange("name", e.target.value)}
                     className="w-full"
                   />
                 </div>
@@ -207,42 +312,49 @@ export default function SettingsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">الاسم الأول</Label>
+                  <Label htmlFor="phone">رقم الهاتف</Label>
                   <Input
-                    id="firstName"
-                    value={userProfile.firstName}
-                    onChange={e => handleProfileChange("firstName", e.target.value)}
+                    id="phone"
+                    value={userProfile.phone || ''}
+                    onChange={e => handleProfileChange("phone", e.target.value)}
                     className="w-full"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">اسم العائلة</Label>
+                  <Label htmlFor="country">البلد</Label>
                   <Input
-                    id="lastName"
-                    value={userProfile.lastName}
-                    onChange={e => handleProfileChange("lastName", e.target.value)}
+                    id="country"
+                    value={userProfile.country || ''}
+                    onChange={e => handleProfileChange("country", e.target.value)}
                     className="w-full"
                   />
                 </div>
                 
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="phone">رقم الهاتف</Label>
-                  <Input
-                    id="phone"
-                    value={userProfile.phone}
-                    onChange={e => handleProfileChange("phone", e.target.value)}
-                    className="w-full"
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">المنطقة الزمنية</Label>
+                  <Select 
+                    value={userProfile.timezone || ''} 
+                    onValueChange={value => handleProfileChange("timezone", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المنطقة الزمنية" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC+3">(UTC+3) العربية السعودية</SelectItem>
+                      <SelectItem value="UTC+4">(UTC+4) الإمارات العربية المتحدة</SelectItem>
+                      <SelectItem value="UTC+0">(UTC+0) غرينتش</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="md:col-span-2 flex justify-end">
                   <Button 
                     type="submit" 
                     className="bg-primary text-white px-8 flex items-center gap-2"
-                    disabled={isLoading}
+                    disabled={isUpdating}
                   >
-                    {isLoading ? (
+                    {isUpdating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Save className="w-4 h-4" />
@@ -267,8 +379,8 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="language">اللغة</Label>
                     <Select 
-                      value={appSettings.language} 
-                      onValueChange={value => handleSettingChange("language", value)}
+                      value={userProfile.preferences.language || 'ar'} 
+                      onValueChange={value => handlePreferenceChange("language", value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر اللغة" />
@@ -277,6 +389,23 @@ export default function SettingsPage() {
                         <SelectItem value="ar">العربية</SelectItem>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="fr">Français</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">المظهر</Label>
+                    <Select 
+                      value={userProfile.preferences.theme || 'light'} 
+                      onValueChange={value => handlePreferenceChange("theme", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المظهر" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">فاتح</SelectItem>
+                        <SelectItem value="dark">داكن</SelectItem>
+                        <SelectItem value="auto">تلقائي</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -291,21 +420,8 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <Switch
-                      checked={appSettings.notifications}
-                      onCheckedChange={value => handleSettingChange("notifications", value)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>الوضع الليلي</Label>
-                      <p className="text-sm text-muted-foreground">
-                        تبديل المظهر بين الفاتح والداكن
-                      </p>
-                    </div>
-                    <Switch
-                      checked={appSettings.darkMode}
-                      onCheckedChange={value => handleSettingChange("darkMode", value)}
+                      checked={userProfile.preferences.notifications || false}
+                      onCheckedChange={value => handlePreferenceChange("notifications", value)}
                     />
                   </div>
                   
@@ -317,8 +433,8 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <Switch
-                      checked={appSettings.autoUpdate}
-                      onCheckedChange={value => handleSettingChange("autoUpdate", value)}
+                      checked={userProfile.preferences.autoUpdate || false}
+                      onCheckedChange={value => handlePreferenceChange("autoUpdate", value)}
                     />
                   </div>
                 </div>
@@ -327,9 +443,9 @@ export default function SettingsPage() {
                   <Button 
                     type="submit" 
                     className="bg-primary text-white px-8 flex items-center gap-2"
-                    disabled={isLoading}
+                    disabled={isUpdating}
                   >
-                    {isLoading ? (
+                    {isUpdating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Save className="w-4 h-4" />
@@ -342,89 +458,82 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security">
+        <TabsContent value="resources">
           <Card>
             <CardHeader>
-              <CardTitle>الأمان</CardTitle>
-              <CardDescription>إدارة إعدادات أمان حسابك</CardDescription>
+              <CardTitle>موارد الخادم</CardTitle>
+              <CardDescription>استعراض استخدام موارد الخادم الخاص بك</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>المصادقة الثنائية (2FA)</Label>
-                      <p className="text-sm text-muted-foreground">
-                        إضافة طبقة أمان إضافية لحسابك
-                      </p>
-                    </div>
-                    <Button variant="outline">تفعيل</Button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>جلسات التسجيل</Label>
-                      <p className="text-sm text-muted-foreground">
-                        عرض وإدارة جلسات تسجيل الدخول النشطة
-                      </p>
-                    </div>
-                    <Button variant="outline">عرض الجلسات</Button>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Cpu className="w-4 h-4" />
+                      معالج المركز (CPU)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.resourceUsage.cpu}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      من أصل {userProfile.resourceUsage.totalMemory} GB ذاكرة
+                    </p>
+                  </CardContent>
+                </Card>
                 
-                <div className="pt-4 border-t">
-                  <h3 className="text-lg font-medium text-destructive">منطقة الخطر</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    حذف حسابك بشكل دائم وإزالة جميع بياناتك
-                  </p>
-                  <Button variant="destructive">حذف الحساب</Button>
-                </div>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <HardDrive className="w-4 h-4" />
+                      التخزين
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.resourceUsage.storage} GB</div>
+                    <p className="text-xs text-muted-foreground">
+                      من أصل {userProfile.resourceUsage.totalStorage} GB سعة تخزين
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Network className="w-4 h-4" />
+                      النطاق الترددي
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.resourceUsage.network} GB</div>
+                    <p className="text-xs text-muted-foreground">
+                      من أصل {userProfile.resourceUsage.totalNetwork} GB هذا الشهر
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Server className="w-4 h-4" />
+                      الخوادم
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.servers?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      خوادم نشطة في حسابك
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="mt-6 text-xs text-muted-foreground">
+                آخر تحديث: {new Date(userProfile.resourceUsage.lastUpdated).toLocaleDateString('ar-SA')}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-// أيقونات إضافية
-function User(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  )
-}
-
-function Settings(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
   )
 }
