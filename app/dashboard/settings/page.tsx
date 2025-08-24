@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 // أنواع TypeScript للبيانات المستندة إلى نموذج MongoDB
 interface UserProfile {
@@ -58,6 +59,9 @@ const countryCodes = [
 ];
 
 export default function SettingsPage() {
+  // استخدام الجلسة لتحديث بيانات المستخدم في الرأس
+  const { data: session, update: updateSession } = useSession();
+  
   // حالة بيانات المستخدم
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
@@ -167,6 +171,16 @@ export default function SettingsPage() {
       const updatedUser = await response.json();
       setUserProfile(updatedUser);
       
+      // تحديث جلسة next-auth لتعكس التغييرات في الرأس
+      await updateSession({
+        ...session,
+        user: {
+          ...session?.user,
+          name: updatedUser.name,
+          image: profileImage !== "/placeholder-user.jpg" ? profileImage : session?.user?.image
+        }
+      });
+      
       // إظهار رسالة نجاح واضحة
       toast.success("تم تحديث الملف الشخصي بنجاح", {
         description: "تم حفظ جميع التغييرات التي أجريتها",
@@ -248,7 +262,18 @@ export default function SettingsPage() {
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
-          setProfileImage(e.target.result as string);
+          const newImage = e.target.result as string;
+          setProfileImage(newImage);
+          
+          // تحديث الجلسة فوراً عند تغيير الصورة
+          updateSession({
+            ...session,
+            user: {
+              ...session?.user,
+              image: newImage
+            }
+          });
+          
           toast.success("تم تحميل الصورة بنجاح", {
             description: "لا تنس حفظ التغييرات",
             duration: 2000
@@ -265,10 +290,23 @@ export default function SettingsPage() {
   // معالج تغيير بيانات المستخدم
   const handleProfileChange = (field: keyof UserProfile, value: any) => {
     if (userProfile) {
-      setUserProfile(prev => ({
-        ...prev!,
+      const updatedUser = {
+        ...userProfile,
         [field]: value
-      }));
+      };
+      
+      setUserProfile(updatedUser);
+      
+      // إذا تم تغيير الاسم، قم بتحديث الجلسة أيضاً
+      if (field === 'name') {
+        updateSession({
+          ...session,
+          user: {
+            ...session?.user,
+            name: value
+          }
+        });
+      }
     }
   };
 
@@ -366,7 +404,16 @@ export default function SettingsPage() {
                       type="button" 
                       variant="outline" 
                       className="flex items-center gap-2"
-                      onClick={() => setProfileImage("/placeholder-user.jpg")}
+                      onClick={() => {
+                        setProfileImage("/placeholder-user.jpg");
+                        updateSession({
+                          ...session,
+                          user: {
+                            ...session?.user,
+                            image: null
+                          }
+                        });
+                      }}
                     >
                       <RotateCcw className="w-4 h-4" />
                       إعادة تعيين
