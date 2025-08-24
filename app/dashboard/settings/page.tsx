@@ -505,14 +505,15 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>الأمان</CardTitle>
-              <CardDescription>
-                إدارة إعدادات الأمان وكلمة المرور
-              </CardDescription>
-            </CardContent>
-            <CardContent className="space-y-6">
+<Card>
+  <CardHeader>
+    <CardTitle>الأمان</CardTitle>
+    <CardDescription>
+      إدارة إعدادات الأمان وكلمة المرور
+    </CardDescription>
+  </CardContent>
+  <CardContent className="space-y-6">
+
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium mb-2">تغيير كلمة المرور</h3>
@@ -548,3 +549,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
