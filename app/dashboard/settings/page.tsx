@@ -75,10 +75,37 @@ export default function SettingsPage() {
     fetchUserProfile();
   }, []);
 
+  // حفظ البيانات في localStorage عند التغيير
+  useEffect(() => {
+    if (userProfile) {
+      localStorage.setItem('userProfile', JSON.stringify(userProfile));
+      localStorage.setItem('profileImage', profileImage);
+      localStorage.setItem('selectedCountryCode', selectedCountryCode);
+      localStorage.setItem('phoneNumber', phoneNumber);
+    }
+  }, [userProfile, profileImage, selectedCountryCode, phoneNumber]);
+
   // دالة لجلب بيانات المستخدم من API
   const fetchUserProfile = async () => {
     try {
       setIsLoading(true);
+      
+      // محاولة جلب البيانات المحفوظة محلياً أولاً
+      const savedProfile = localStorage.getItem('userProfile');
+      const savedImage = localStorage.getItem('profileImage');
+      const savedCountryCode = localStorage.getItem('selectedCountryCode');
+      const savedPhone = localStorage.getItem('phoneNumber');
+      
+      if (savedProfile && savedImage && savedCountryCode && savedPhone) {
+        setUserProfile(JSON.parse(savedProfile));
+        setProfileImage(savedImage);
+        setSelectedCountryCode(savedCountryCode);
+        setPhoneNumber(savedPhone);
+        setIsLoading(false);
+        return;
+      }
+      
+      // إذا لم توجد بيانات محفوظة، جلبها من API
       const response = await fetch('/api/user/profile');
       
       if (!response.ok) {
@@ -139,10 +166,20 @@ export default function SettingsPage() {
       
       const updatedUser = await response.json();
       setUserProfile(updatedUser);
-      toast.success("تم تحديث الملف الشخصي بنجاح");
+      
+      // إظهار رسالة نجاح واضحة
+      toast.success("تم تحديث الملف الشخصي بنجاح", {
+        description: "تم حفظ جميع التغييرات التي أجريتها",
+        duration: 3000,
+        position: "top-center"
+      });
     } catch (error) {
       console.error("Update error:", error);
-      toast.error("فشل في تحديث الملف الشخصي");
+      toast.error("فشل في تحديث الملف الشخصي", {
+        description: "يرجى المحاولة مرة أخرى",
+        duration: 3000,
+        position: "top-center"
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -180,10 +217,20 @@ export default function SettingsPage() {
       
       const updatedUser = await response.json();
       setUserProfile(updatedUser);
-      toast.success("تم حفظ الإعدادات بنجاح");
+      
+      // إظهار رسالة نجاح واضحة
+      toast.success("تم حفظ الإعدادات بنجاح", {
+        description: "تم تحديث تفضيلاتك بنجاح",
+        duration: 3000,
+        position: "top-center"
+      });
     } catch (error) {
       console.error("Update error:", error);
-      toast.error("فشل في حفظ الإعدادات");
+      toast.error("فشل في حفظ الإعدادات", {
+        description: "يرجى المحاولة مرة أخرى",
+        duration: 3000,
+        position: "top-center"
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -202,7 +249,10 @@ export default function SettingsPage() {
       reader.onload = (e) => {
         if (e.target?.result) {
           setProfileImage(e.target.result as string);
-          toast.success("تم تحميل الصورة بنجاح");
+          toast.success("تم تحميل الصورة بنجاح", {
+            description: "لا تنس حفظ التغييرات",
+            duration: 2000
+          });
         }
       };
       reader.onerror = () => {
