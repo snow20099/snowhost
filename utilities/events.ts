@@ -1,22 +1,17 @@
-// utilities/events.ts
-export const PROFILE_UPDATED_EVENT = 'profileUpdated';
+"use client"
 
-export const emitProfileUpdate = (data: { name?: string; image?: string }) => {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(PROFILE_UPDATED_EVENT, { detail: data }));
-  }
-};
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useState, ChangeEvent, FormEvent, useEffect, useRef } from "react"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { emitProfileUpdate } from "@/utilities/events"
 
-export const listenToProfileUpdates = (callback: (data: { name?: string; image?: string }) => void) => {
-  if (typeof window === 'undefined') return () => {};
-  
-  const handler = (event: CustomEvent) => {
-    callback(event.detail);
-  };
-  
-  window.addEventListener(PROFILE_UPDATED_EVENT, handler as EventListener);
-  
-  return () => {
-    window.removeEventListener(PROFILE_UPDATED_EVENT, handler as EventListener);
-  };
-};
+// باقي الكود...
