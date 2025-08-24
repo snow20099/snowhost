@@ -32,7 +32,6 @@ import {
   Home,
   Settings,
   CreditCard,
-  BarChart3,
   HardDrive,
   Globe,
   Shield,
@@ -80,14 +79,6 @@ export default function DashboardLayout({
                       <Link href="/dashboard/servers">
                         <HardDrive className="h-4 w-4" />
                         <span>My Servers</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/statistics"}>
-                      <Link href="/dashboard/statistics">
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Statistics</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -187,7 +178,6 @@ export default function DashboardLayout({
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4">
             <div>{/* Page title would go here */}</div>
-            
           </header>
           <main className="flex-1 w-full p-4 md:p-6">{children}</main>
         </div>
@@ -195,4 +185,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   )
 }
-
