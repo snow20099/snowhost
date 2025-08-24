@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { useSearchParams, useRouter } from "next/navigation"
 
 interface UserBalance {
   balance: number
@@ -12,18 +14,14 @@ interface UserBalance {
 
 interface Transaction {
   id: string
+  transactionId?: string
   amount: number
   type: string
+  method?: string
   reason: string
   date: string
   status: 'pending' | 'completed' | 'failed'
 }
-
-const balances = [
-  { label: "Added Balance", value: "$0.00", color: "text-blue-400" },
-  { label: "Total Balance", value: "$0.00", color: "text-blue-500" },
-  { label: "Cashback Balance", value: "$0.00", color: "text-blue-400" },
-]
 
 const paymentMethods = [
   { 
@@ -40,10 +38,11 @@ const paymentMethods = [
   { 
     name: "Cryptocurrency", 
     desc: "Bitcoin, Ethereum, USDT",
-    label: "Most Popular",
-    labelColor: "bg-purple-500",
-    labelIcon: "⭐",
+    label: "Coming Soon",
+    labelColor: "bg-gray-500",
+    labelIcon: "⏳",
     type: "crypto",
+    disabled: true,
     icons: [
       <div key="btc" className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">₿</div>,
       <div key="eth" className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">Ξ</div>,
@@ -53,10 +52,11 @@ const paymentMethods = [
   { 
     name: "Stripe Cards", 
     desc: "Visa, MasterCard, Amex",
-    label: "Fast",
-    labelColor: "bg-green-500",
-    labelIcon: "⚡",
+    label: "Coming Soon",
+    labelColor: "bg-gray-500",
+    labelIcon: "⏳",
     type: "stripe",
+    disabled: true,
     icons: [
       <div key="visa" className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">VISA</div>,
       <div key="mastercard" className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white font-bold text-xs">MC</div>,
@@ -66,10 +66,11 @@ const paymentMethods = [
   { 
     name: "Egyptian Wallets", 
     desc: "Vodafone Cash, Orange, Etisalat",
-    label: "Local",
-    labelColor: "bg-red-500",
-    labelIcon: "🏛️",
+    label: "Coming Soon",
+    labelColor: "bg-gray-500",
+    labelIcon: "⏳",
     type: "egyptian",
+    disabled: true,
     icons: [
       <div key="vodafone" className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-xs">V</div>,
       <div key="orange" className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">O</div>,
@@ -79,7 +80,11 @@ const paymentMethods = [
 ]
 
 export default function WalletPage() {
-  const [amount, setAmount] = useState(100)
+  const { data: session, status } = useSession()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  const [amount, setAmount] = useState(10)
   const [showModal, setShowModal] = useState(false)
   const [selected, setSelected] = useState(0)
   const [userBalance, setUserBalance] = useState<UserBalance | null>(null)
@@ -87,189 +92,205 @@ export default function WalletPage() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  // التحقق من حالة الإرجاع من PayPal
   useEffect(() => {
-    const fetchBalance = async () => {
+    const success = searchParams.get("success")
+    const cancelled = searchParams.get("cancelled")
+    const token = searchParams.get("token") // PayPal Order ID
+    const payerId = searchParams.get("PayerID")
+    
+    if (success === "true" && token && payerId) {
+      setSuccessMessage("✅ جارٍ معالجة الدفعة...")
+      capturePayment(token)
+    } else if (success === "true") {
+      setSuccessMessage("✅ تم الدفع بنجاح! جارٍ تحديث رصيدك...")
+    } else if (cancelled === "true") {
+      setError("❌ تم إلغاء عملية الدفع")
+    }
+
+    // تنظيف URL بعد المعالجة
+    if (success || cancelled) {
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [searchParams])
+
+  // جلب رصيد المستخدم والمعاملات
+  useEffect(() => {
+    if (status === 'loading') return
+    
+    const fetchUserData = async () => {
       try {
-        // محاكاة جلب الرصيد من الـ API
-        setTimeout(() => {
-          setUserBalance({ balance: 250.50, currency: 'USD' })
-          setTransactions([
-            {
-              id: 'tx_001',
-              amount: 100,
-              type: 'deposit',
-              reason: 'PayPal Payment',
-              date: '2025-08-18',
-              status: 'completed'
-            },
-            {
-              id: 'tx_002',
-              amount: 50,
-              type: 'withdrawal',
-              reason: 'Service Purchase',
-              date: '2025-08-17',
-              status: 'completed'
-            }
-          ])
-          setLoading(false)
-        }, 1500)
+        // جلب رصيد المستخدم
+        const balanceResponse = await fetch('/api/user/balance')
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json()
+          setUserBalance(balanceData)
+        }
+
+        // جلب المعاملات
+        const transactionsResponse = await fetch('/api/user/transactions')
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json()
+          setTransactions(transactionsData.transactions || [])
+        }
       } catch (error) {
-        console.error("Error fetching balance:", error)
+        console.error("Error fetching user data:", error)
+        // استخدام بيانات وهمية في حالة الخطأ
+        setUserBalance({ balance: 0, currency: 'USD' })
+        setTransactions([])
+      } finally {
         setLoading(false)
       }
     }
 
-    fetchBalance()
-  }, [])
+    fetchUserData()
+  }, [status, successMessage])
+
+  // دالة لالتقاط الدفعة بعد الموافقة من PayPal
+  const capturePayment = async (orderID: string) => {
+    try {
+      const response = await fetch("/api/payment/paypal/capture-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderID }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSuccessMessage(`✅ تم إكمال الدفعة بنجاح! تمت إضافة $${data.amount} إلى رصيدك.`)
+        setError(null)
+        
+        // تحديث الرصيد محلياً
+        setUserBalance(prev => prev ? {
+          ...prev,
+          balance: prev.balance + data.amount
+        } : { balance: data.amount, currency: 'USD' })
+
+        // إضافة المعاملة الجديدة
+        const newTransaction: Transaction = {
+          id: `TXN-${Date.now()}`,
+          transactionId: data.captureId,
+          amount: data.amount,
+          type: 'deposit',
+          method: 'PayPal',
+          reason: 'PayPal Payment',
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        }
+        setTransactions(prev => [newTransaction, ...prev])
+
+        // إخفاء الرسالة بعد 5 ثوان
+        setTimeout(() => setSuccessMessage(null), 5000)
+      } else {
+        throw new Error(data.error || "فشل في إكمال الدفعة")
+      }
+    } catch (error) {
+      console.error("خطأ في التقاط الدفعة:", error)
+      setError(`خطأ في إكمال الدفعة: ${error instanceof Error ? error.message : "خطأ غير معروف"}`)
+      setSuccessMessage(null)
+    }
+  }
 
   // دالة لمعالجة دفع PayPal
-  const handlePayPalPayment = async (amount: number) => {
-    try {
-      // في التطبيق الحقيقي، ستحتاج لتثبيت @paypal/react-paypal-js
-      const response = await fetch('/api/payment/paypal/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      })
-      
-      const { orderID } = await response.json()
-      
-      // هنا ستفتح نافذة PayPal للدفع
-      window.open(`https://www.sandbox.paypal.com/checkoutnow?token=${orderID}`, '_blank')
-      
-      return { success: true, orderId: orderID }
-    } catch (error) {
-      throw new Error('PayPal payment failed')
+  const handlePayPalPayment = async (paymentAmount: number) => {
+    if (!session?.user?.email) {
+      throw new Error("يرجى تسجيل الدخول أولاً")
     }
-  }
 
-  // دالة لمعالجة دفع الكريبتو
-  const handleCryptoPayment = async (amount: number) => {
     try {
-      const response = await fetch('/api/payment/crypto/create-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          amount,
-          currency: 'USD',
-          acceptedCoins: ['BTC', 'ETH', 'USDT']
-        })
+      const response = await fetch("/api/payment/paypal/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: paymentAmount }),
       })
-      
-      const invoice = await response.json()
-      
-      // إظهار عنوان المحفظة ومبلغ الدفع
-      alert(`Payment Address: ${invoice.address}\nAmount: ${invoice.cryptoAmount} ${invoice.coin}`)
-      
-      return { success: true, invoiceId: invoice.id }
-    } catch (error) {
-      throw new Error('Crypto payment failed')
-    }
-  }
 
-  // دالة لمعالجة دفع Stripe
-  const handleStripePayment = async (amount: number) => {
-    try {
-      const response = await fetch('/api/payment/stripe/create-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          amount: amount * 100, // Stripe يستخدم cents
-          currency: 'usd'
-        })
-      })
-      
-      const { sessionId } = await response.json()
-      
-      // توجيه المستخدم لصفحة Stripe للدفع
-      window.location.href = `https://checkout.stripe.com/pay/${sessionId}`
-      
-      return { success: true, sessionId }
-    } catch (error) {
-      throw new Error('Stripe payment failed')
-    }
-  }
+      const data = await response.json()
 
-  // دالة لمعالجة المحافظ المصرية
-  const handleEgyptianWalletPayment = async (amount: number) => {
-    try {
-      // هذا يحتاج تكامل مع مزودي خدمات الدفع المصريين
-      const response = await fetch('/api/payment/egyptian/create-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, provider: 'vodafone' })
-      })
-      
-      const payment = await response.json()
-      alert(`Please send ${amount} EGP to: ${payment.phoneNumber}`)
-      
-      return { success: true, paymentId: payment.id }
+      if (!response.ok) {
+        throw new Error(data.error || "فشل في إنشاء طلب الدفع")
+      }
+
+      if (data.success && data.approvalUrl) {
+        // إضافة معاملة في حالة الانتظار
+        const pendingTransaction: Transaction = {
+          id: `TXN-${Date.now()}`,
+          transactionId: data.orderID,
+          amount: paymentAmount,
+          type: 'deposit',
+          method: 'PayPal',
+          reason: 'PayPal Payment (Pending)',
+          date: new Date().toISOString().split('T')[0],
+          status: 'pending'
+        }
+        setTransactions(prev => [pendingTransaction, ...prev])
+
+        // توجيه المستخدم إلى PayPal
+        window.location.href = data.approvalUrl
+        
+        return { success: true, orderId: data.orderID }
+      } else {
+        throw new Error("لم يتم الحصول على رابط الدفع")
+      }
     } catch (error) {
-      throw new Error('Egyptian wallet payment failed')
+      console.error("خطأ في الدفع:", error)
+      throw error
     }
   }
 
   const handleAddBalance = async () => {
     setPaymentLoading(true)
     setError(null)
+    setSuccessMessage(null)
     
     try {
       const selectedMethod = paymentMethods[selected]
-      let result
+      
+      if (selectedMethod.disabled) {
+        throw new Error(`${selectedMethod.name} غير متاح حالياً`)
+      }
       
       switch (selectedMethod.type) {
         case 'paypal':
-          result = await handlePayPalPayment(amount)
-          break
-        case 'crypto':
-          result = await handleCryptoPayment(amount)
-          break
-        case 'stripe':
-          result = await handleStripePayment(amount)
-          break
-        case 'egyptian':
-          result = await handleEgyptianWalletPayment(amount)
+          await handlePayPalPayment(amount)
           break
         default:
-          throw new Error('Unsupported payment method')
+          throw new Error('طريقة دفع غير مدعومة')
       }
 
-      if (result.success) {
-        // إضافة معاملة جديدة في حالة الانتظار
-        const newTransaction: Transaction = {
-          id: `tx_${Date.now()}`,
-          amount: amount,
-          type: 'deposit',
-          reason: `${selectedMethod.name} Payment`,
-          date: new Date().toISOString().split('T')[0],
-          status: 'pending'
-        }
-        
-        setTransactions(prev => [newTransaction, ...prev])
-        setShowModal(false)
-        
-        // في التطبيق الحقيقي، سيتم تحديث الرصيد بعد تأكيد الدفع
-        alert(`Payment initiated successfully! Transaction ID: ${result.orderId || result.invoiceId || result.sessionId}`)
-      }
+      setShowModal(false)
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Payment failed')
+      setError(error instanceof Error ? error.message : 'فشل في الدفع')
     } finally {
       setPaymentLoading(false)
     }
   }
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="space-y-8">
         <div className="text-center py-8">
-          <div className="text-white text-xl">Loading wallet...</div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <div className="text-lg">جارٍ تحميل المحفظة...</div>
         </div>
       </div>
     )
   }
 
-  const updatedBalances = [
+  if (!session) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-8">
+          <div className="text-lg text-red-600">يرجى تسجيل الدخول للوصول إلى المحفظة</div>
+        </div>
+      </div>
+    )
+  }
+
+  const balances = [
     { label: "Added Balance", value: `$${userBalance?.balance.toFixed(2) || '0.00'}`, color: "text-blue-400" },
     { label: "Total Balance", value: `$${userBalance?.balance.toFixed(2) || '0.00'}`, color: "text-blue-500" },
     { label: "Cashback Balance", value: "$0.00", color: "text-blue-400" },
@@ -277,16 +298,35 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-8">
+      {/* رسائل النجاح والخطأ */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+          <button 
+            onClick={() => setError(null)} 
+            className="float-right text-red-700 hover:text-red-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 items-start">
         {/* Add Balance Form */}
         <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg">Add Balance</CardTitle>
+            <CardTitle className="text-lg">إضافة رصيد</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-1 font-medium">Amount (USD)</label>
+                <label className="block text-sm mb-1 font-medium">المبلغ (USD)</label>
                 <Input
                   type="number"
                   min={1}
@@ -294,25 +334,23 @@ export default function WalletPage() {
                   value={amount}
                   onChange={e => setAmount(Number(e.target.value))}
                   className="w-full"
-                  placeholder="Enter amount"
+                  placeholder="أدخل المبلغ"
                 />
               </div>
               <Button 
                 onClick={() => setShowModal(true)} 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2"
+                disabled={paymentLoading || amount < 1}
               >
-                Add Balance
+                إضافة رصيد
               </Button>
             </div>
-            {error && (
-              <div className="mt-2 text-red-500 text-sm">{error}</div>
-            )}
           </CardContent>
         </Card>
 
         {/* Balance Cards */}
         <div className="flex flex-col gap-4 col-span-2 md:flex-row md:col-span-2 lg:col-span-2">
-          {updatedBalances.map((bal, idx) => (
+          {balances.map((bal, idx) => (
             <Card key={idx} className="flex-1 hover:border-blue-600 hover:shadow-lg transition-all duration-200 cursor-pointer">
               <CardHeader className="flex flex-row items-center gap-3 pb-2">
                 <div className="p-2 rounded-md bg-background border border-blue-600 hover:border-blue-500 transition-colors">
@@ -338,18 +376,19 @@ export default function WalletPage() {
       {/* Transactions Table */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Wallet Transactions</CardTitle>
+          <CardTitle>معاملات المحفظة</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border/30">
-                  <th className="py-2 px-4 text-left font-semibold">Amount</th>
-                  <th className="py-2 px-4 text-left font-semibold">Type</th>
-                  <th className="py-2 px-4 text-left font-semibold">Reason</th>
-                  <th className="py-2 px-4 text-left font-semibold">Date</th>
-                  <th className="py-2 px-4 text-left font-semibold">Status</th>
+                  <th className="py-2 px-4 text-left font-semibold">المبلغ</th>
+                  <th className="py-2 px-4 text-left font-semibold">النوع</th>
+                  <th className="py-2 px-4 text-left font-semibold">الطريقة</th>
+                  <th className="py-2 px-4 text-left font-semibold">السبب</th>
+                  <th className="py-2 px-4 text-left font-semibold">التاريخ</th>
+                  <th className="py-2 px-4 text-left font-semibold">الحالة</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,7 +400,8 @@ export default function WalletPage() {
                           {tx.type === 'deposit' ? '+' : '-'}${tx.amount.toFixed(2)}
                         </span>
                       </td>
-                      <td className="py-2 px-4 capitalize">{tx.type}</td>
+                      <td className="py-2 px-4 capitalize">{tx.type === 'deposit' ? 'إيداع' : 'سحب'}</td>
+                      <td className="py-2 px-4">{tx.method || 'غير محدد'}</td>
                       <td className="py-2 px-4">{tx.reason}</td>
                       <td className="py-2 px-4">{tx.date}</td>
                       <td className="py-2 px-4">
@@ -370,14 +410,14 @@ export default function WalletPage() {
                           tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {tx.status}
+                          {tx.status === 'completed' ? 'مكتمل' : tx.status === 'pending' ? 'في الانتظار' : 'فاشل'}
                         </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-muted-foreground">No transactions found.</td>
+                    <td colSpan={6} className="py-6 text-center text-muted-foreground">لا توجد معاملات</td>
                   </tr>
                 )}
               </tbody>
@@ -399,12 +439,12 @@ export default function WalletPage() {
             </button>
             
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-bold text-lg">Select Payment Method</span>
+              <span className="font-bold text-lg">اختر طريقة الدفع</span>
               <span className="text-blue-600 font-bold">${amount.toFixed(2)}</span>
             </div>
             
             <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded px-4 py-2 text-sm">
-              <b>Info:</b> You will be redirected to the payment provider to complete your transaction securely.
+              <b>معلومة:</b> سيتم توجيهك إلى مزود الدفع لإتمام المعاملة بأمان.
             </div>
             
             <div className="grid grid-cols-1 gap-4 mb-6">
@@ -414,8 +454,8 @@ export default function WalletPage() {
                   onClick={() => setSelected(idx)}
                   className={`relative flex items-center justify-between border rounded-lg p-4 transition-all duration-150 shadow-sm focus:outline-none ${
                     selected === idx ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20" : "border-border/30 bg-background hover:bg-muted/50"
-                  }`}
-                  disabled={paymentLoading}
+                  } ${method.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={paymentLoading || method.disabled}
                 >
                   {/* Label */}
                   <div className={`absolute top-2 right-2 ${method.labelColor} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1`}>
@@ -448,14 +488,18 @@ export default function WalletPage() {
             <Button 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg" 
               onClick={handleAddBalance}
-              disabled={paymentLoading}
+              disabled={paymentLoading || paymentMethods[selected].disabled}
             >
-              {paymentLoading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+              {paymentLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  جارٍ المعالجة...
+                </span>
+              ) : `دفع $${amount.toFixed(2)}`}
             </Button>
-            
-            {error && (
-              <div className="mt-3 text-red-500 text-sm text-center">{error}</div>
-            )}
           </div>
         </div>
       )}
