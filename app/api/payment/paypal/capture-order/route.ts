@@ -1,36 +1,33 @@
-// ==============================================================================
-// File: app/api/payment/paypal/capture-order/route.ts
-// ==============================================================================
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { client, paypal } from "@/lib/paypal"
-import { connectToDatabase } from "@/lib/mongodb"
-import User from "@/models/User"
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { client, paypal } from "@/lib/paypal";
+import { connectToDatabase } from "@/lib/mongodb";
+import User from "@/models/User";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession();
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderID } = await request.json()
+    const { orderID } = await request.json();
     if (!orderID) {
-      return NextResponse.json({ error: "Missing orderID" }, { status: 400 })
+      return NextResponse.json({ error: "Missing orderID" }, { status: 400 });
     }
 
-    const captureRequest = new paypal.orders.OrdersCaptureRequest(orderID)
-    captureRequest.requestBody({})
+    const captureRequest = new paypal.orders.OrdersCaptureRequest(orderID);
+    captureRequest.requestBody({});
 
-    const capture = await client().execute(captureRequest)
+    const capture = await client().execute(captureRequest);
 
     if (capture.result.status === "COMPLETED") {
       const amount = parseFloat(
         capture.result.purchase_units[0].payments.captures[0].amount.value
-      )
+      );
 
-      // تحديث رصيد المستخدم
-      await connectToDatabase()
+      // تحديث رصيد المستخدم في قاعدة البيانات
+      await connectToDatabase();
       await User.findOneAndUpdate(
         { email: session.user.email },
         {
@@ -43,24 +40,31 @@ export async function POST(request: NextRequest) {
               type: "deposit",
               method: "PayPal",
               status: "completed",
-              reason: "PayPal Payment",
+              reason: "PayPal Payment - دفع عبر PayPal",
               date: new Date(),
             },
           },
         }
-      )
+      );
 
       return NextResponse.json({
         success: true,
         captureId: capture.result.id,
         amount: amount,
         status: "completed",
-      })
+        message: "تم الدفع بنجاح وتحديث الرصيد",
+      });
     }
 
-    return NextResponse.json({ error: "Payment not completed" }, { status: 400 })
+    return NextResponse.json(
+      { error: "الدفعة لم تكتمل" },
+      { status: 400 }
+    );
   } catch (error) {
-    console.error("PayPal capture error:", error)
-    return NextResponse.json({ error: "Failed to capture PayPal payment" }, { status: 500 })
+    console.error("خطأ في التقاط دفعة PayPal:", error);
+    return NextResponse.json(
+      { error: "فشل في التقاط دفعة PayPal" },
+      { status: 500 }
+    );
   }
 }
