@@ -4,13 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, ChangeEvent, FormEvent, useEffect } from "react"
+import { useState, ChangeEvent, FormEvent, useEffect, useRef } from "react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield, Palette, Globe, Bell, Cpu, HardDrive, Network, Server } from "lucide-react"
+import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield } from "lucide-react"
 
 // أنواع TypeScript للبيانات المستندة إلى نموذج MongoDB
 interface UserProfile {
@@ -23,18 +23,6 @@ interface UserProfile {
   balance: number;
   currency: string;
   accountType: string;
-  servers: any[];
-  invoices: any[];
-  resourceUsage: {
-    cpu: number;
-    memory: number;
-    storage: number;
-    network: number;
-    totalStorage: number;
-    totalMemory: number;
-    totalNetwork: number;
-    lastUpdated: Date;
-  };
   preferences: {
     theme: string;
     language: string;
@@ -45,6 +33,30 @@ interface UserProfile {
   updatedAt: Date;
 }
 
+// قائمة الرموز الدولية للهواتف
+const countryCodes = [
+  { code: "+966", name: "السعودية", flag: "🇸🇦" },
+  { code: "+971", name: "الإمارات", flag: "🇦🇪" },
+  { code: "+973", name: "البحرين", flag: "🇧🇭" },
+  { code: "+974", name: "قطر", flag: "🇶🇦" },
+  { code: "+968", name: "عمان", flag: "🇴🇲" },
+  { code: "+965", name: "الكويت", flag: "🇰🇼" },
+  { code: "+20", name: "مصر", flag: "🇪🇬" },
+  { code: "+962", name: "الأردن", flag: "🇯🇴" },
+  { code: "+963", name: "سوريا", flag: "🇸🇾" },
+  { code: "+961", name: "لبنان", flag: "🇱🇧" },
+  { code: "+964", name: "العراق", flag: "🇮🇶" },
+  { code: "+212", name: "المغرب", flag: "🇲🇦" },
+  { code: "+216", name: "تونس", flag: "🇹🇳" },
+  { code: "+213", name: "الجزائر", flag: "🇩🇿" },
+  { code: "+967", name: "اليمن", flag: "🇾🇪" },
+  { code: "+249", name: "السودان", flag: "🇸🇩" },
+  { code: "+1", name: "الولايات المتحدة", flag: "🇺🇸" },
+  { code: "+44", name: "المملكة المتحدة", flag: "🇬🇧" },
+  { code: "+33", name: "فرنسا", flag: "🇫🇷" },
+  { code: "+49", name: "ألمانيا", flag: "🇩🇪" },
+];
+
 export default function SettingsPage() {
   // حالة بيانات المستخدم
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -52,6 +64,11 @@ export default function SettingsPage() {
   // حالة التحميل
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [profileImage, setProfileImage] = useState<string>("/placeholder-user.jpg");
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>("+966");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // جلب بيانات المستخدم عند تحميل المكون
   useEffect(() => {
@@ -70,6 +87,17 @@ export default function SettingsPage() {
       
       const userData = await response.json();
       setUserProfile(userData);
+      
+      // إذا كان هناك رقم هاتف، فصل الرمز الدولي عن الرقم
+      if (userData.phone) {
+        const phoneParts = userData.phone.split(' ');
+        if (phoneParts.length > 1) {
+          setSelectedCountryCode(phoneParts[0]);
+          setPhoneNumber(phoneParts.slice(1).join(' '));
+        } else {
+          setPhoneNumber(userData.phone);
+        }
+      }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       toast.error("فشل في تحميل بيانات الملف الشخصي");
@@ -87,6 +115,9 @@ export default function SettingsPage() {
     setIsUpdating(true);
     
     try {
+      // دمج الرمز الدولي مع رقم الهاتف
+      const fullPhone = `${selectedCountryCode} ${phoneNumber}`;
+      
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
@@ -94,7 +125,7 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({
           name: userProfile.name,
-          phone: userProfile.phone,
+          phone: fullPhone,
           country: userProfile.country,
           timezone: userProfile.timezone,
           theme: userProfile.preferences.theme,
@@ -169,8 +200,13 @@ export default function SettingsPage() {
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        // هنا يمكنك إضافة كود لرفع الصورة إلى الخادم
-        toast.success("تم تحميل الصورة بنجاح");
+        if (e.target?.result) {
+          setProfileImage(e.target.result as string);
+          toast.success("تم تحميل الصورة بنجاح");
+        }
+      };
+      reader.onerror = () => {
+        toast.error("فشل في تحميل الصورة");
       };
       reader.readAsDataURL(file);
     }
@@ -234,7 +270,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             الملف الشخصي
@@ -242,10 +278,6 @@ export default function SettingsPage() {
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             الإعدادات
-          </TabsTrigger>
-          <TabsTrigger value="resources" className="flex items-center gap-2">
-            <Server className="w-4 h-4" />
-            موارد الخادم
           </TabsTrigger>
         </TabsList>
 
@@ -259,20 +291,22 @@ export default function SettingsPage() {
               <form onSubmit={handleProfileUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div className="flex flex-col items-center gap-4 md:col-span-2">
                   <Avatar className="w-24 h-24 border-2 border-primary">
-                    <AvatarImage src="/placeholder-user.jpg" alt="Profile" />
+                    <AvatarImage src={profileImage} alt="Profile" />
                     <AvatarFallback className="text-2xl">
                       {userProfile.name ? userProfile.name[0] : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex gap-2">
-                    <Button asChild type="button" className="bg-primary text-white">
-                      <Label htmlFor="profile-picture" className="cursor-pointer flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        رفع صورة جديدة
-                      </Label>
+                    <Button 
+                      type="button" 
+                      className="bg-primary text-white flex items-center gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4" />
+                      رفع صورة جديدة
                     </Button>
-                    <Input
-                      id="profile-picture"
+                    <input
+                      ref={fileInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/gif"
                       className="hidden"
@@ -282,6 +316,7 @@ export default function SettingsPage() {
                       type="button" 
                       variant="outline" 
                       className="flex items-center gap-2"
+                      onClick={() => setProfileImage("/placeholder-user.jpg")}
                     >
                       <RotateCcw className="w-4 h-4" />
                       إعادة تعيين
@@ -311,14 +346,29 @@ export default function SettingsPage() {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="phone">رقم الهاتف</Label>
-                  <Input
-                    id="phone"
-                    value={userProfile.phone || ''}
-                    onChange={e => handleProfileChange("phone", e.target.value)}
-                    className="w-full"
-                  />
+                  <div className="flex gap-2">
+                    <Select value={selectedCountryCode} onValueChange={setSelectedCountryCode}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="رمز الدولة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.flag} {country.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      value={phoneNumber}
+                      onChange={e => setPhoneNumber(e.target.value)}
+                      className="flex-1"
+                      placeholder="رقم الهاتف"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -454,82 +504,6 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="resources">
-          <Card>
-            <CardHeader>
-              <CardTitle>موارد الخادم</CardTitle>
-              <CardDescription>استعراض استخدام موارد الخادم الخاص بك</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Cpu className="w-4 h-4" />
-                      معالج المركز (CPU)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.resourceUsage.cpu}%</div>
-                    <p className="text-xs text-muted-foreground">
-                      من أصل {userProfile.resourceUsage.totalMemory} GB ذاكرة
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <HardDrive className="w-4 h-4" />
-                      التخزين
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.resourceUsage.storage} GB</div>
-                    <p className="text-xs text-muted-foreground">
-                      من أصل {userProfile.resourceUsage.totalStorage} GB سعة تخزين
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Network className="w-4 h-4" />
-                      النطاق الترددي
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.resourceUsage.network} GB</div>
-                    <p className="text-xs text-muted-foreground">
-                      من أصل {userProfile.resourceUsage.totalNetwork} GB هذا الشهر
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Server className="w-4 h-4" />
-                      الخوادم
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.servers?.length || 0}</div>
-                    <p className="text-xs text-muted-foreground">
-                      خوادم نشطة في حسابك
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="mt-6 text-xs text-muted-foreground">
-                آخر تحديث: {new Date(userProfile.resourceUsage.lastUpdated).toLocaleDateString('ar-SA')}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
