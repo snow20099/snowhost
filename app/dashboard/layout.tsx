@@ -35,7 +35,6 @@ import {
   HardDrive,
   Globe,
   Shield,
-  Users,
   LogOut,
   Bell,
   ChevronDown,
@@ -149,14 +148,6 @@ export default function DashboardLayout({
                       <Link href="/dashboard/settings">
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/users"}>
-                      <Link href="/dashboard/users">
-                        <Users className="h-4 w-4" />
-                        <span>Users</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
