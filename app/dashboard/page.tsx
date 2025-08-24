@@ -282,13 +282,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <QuickActionCard
-          title="View Statistics"
-          description="Check detailed performance metrics"
-          icon={<Activity className="h-5 w-5" />}
-          href="/dashboard/statistics"
-        />
+      <div className="grid gap-4 md:grid-cols-2">
         <QuickActionCard
           title="Billing & Invoices"
           description="View and pay your invoices"
@@ -471,4 +465,3 @@ function QuickActionCard({
     </Card>
   )
 }
-
