@@ -1,22 +1,21 @@
-// File: app/api/payment/paypal/create-order/route.ts
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { client, paypal } from "@/lib/paypal"
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { client, paypal } from "@/lib/paypal";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession();
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { amount } = await request.json()
+    const { amount } = await request.json();
     if (!amount || amount < 1) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
-    const orderRequest = new paypal.orders.OrdersCreateRequest()
-    orderRequest.prefer("return=representation")
+    const orderRequest = new paypal.orders.OrdersCreateRequest();
+    orderRequest.prefer("return=representation");
     orderRequest.requestBody({
       intent: "CAPTURE",
       purchase_units: [
@@ -26,26 +25,30 @@ export async function POST(request: NextRequest) {
             currency_code: "USD",
             value: amount.toString(),
           },
-          description: "Wallet Balance Top-up",
+          description: "تعبئة رصيد المحفظة - Wallet Balance Top-up",
         },
       ],
       application_context: {
         brand_name: "Snowhost",
         landing_page: "BILLING",
         user_action: "PAY_NOW",
-        return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/cancel`,
+        return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/wallet?success=true`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/wallet?cancelled=true`,
       },
-    })
+    });
 
-    const order = await client().execute(orderRequest)
-
+    const order = await client().execute(orderRequest);
+    
     return NextResponse.json({
+      success: true,
       orderID: order.result.id,
-      approvalUrl: order.result.links.find((link: any) => link.rel === "approve").href,
-    })
+      approvalUrl: order.result.links.find((link: any) => link.rel === "approve")?.href,
+    });
   } catch (error) {
-    console.error("PayPal order creation error:", error)
-    return NextResponse.json({ error: "Failed to create PayPal order" }, { status: 500 })
+    console.error("خطأ في إنشاء طلب PayPal:", error);
+    return NextResponse.json(
+      { error: "فشل في إنشاء طلب PayPal", details: error },
+      { status: 500 }
+    );
   }
 }
