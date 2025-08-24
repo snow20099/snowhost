@@ -73,26 +73,25 @@ interface ChartDataPoint {
   revenue: number
 }
 
-export default function StatisticsPage() {
-  const [statistics, setStatistics] = useState<Statistics | null>(null)
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
-  const [loading, setLoading] = useState(true)
-  const [chartLoading, setChartLoading] = useState(true)
-
-  useEffect(() => {
-    // Fetch statistics data
-    fetchStatistics().then(data => {
-      setStatistics(data)
-      setLoading(false)
-    })
-
-    // Fetch chart data
-    fetchChartData().then(data => {
-      setChartData(data)
-      setChartLoading(false)
-    })
-  }, [])
-
+const StatCard = ({ 
+  title, 
+  description, 
+  value, 
+  icon: Icon, 
+  iconColor, 
+  data, 
+  isLoading,
+  isCurrency = false 
+}: {
+  title: string
+  description: string
+  value: string | number
+  icon: any
+  iconColor: string
+  data?: StatData
+  isLoading: boolean
+  isCurrency?: boolean
+}) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ar-SA', {
       style: 'currency',
@@ -105,28 +104,10 @@ export default function StatisticsPage() {
     return new Intl.NumberFormat('ar-SA').format(num)
   }
 
-  const StatCard = ({ 
-    title, 
-    description, 
-    value, 
-    icon: Icon, 
-    iconColor, 
-    data, 
-    isLoading,
-    isCurrency = false 
-  }: {
-    title: string
-    description: string
-    value: string | number
-    icon: any
-    iconColor: string
-    data?: StatData
-    isLoading: boolean
-    isCurrency?: boolean
-  }) => (
+  return (
     <Card className="relative overflow-hidden">
       <CardHeader className="flex flex-row items-center gap-3 pb-2">
-        <div className={`p-2 rounded-md bg-background border border-border/30`}>
+        <div className="p-2 rounded-md bg-background border border-border/30">
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
         <div className="flex-1">
@@ -161,6 +142,39 @@ export default function StatisticsPage() {
       </CardContent>
     </Card>
   )
+}
+
+export default function StatisticsPage() {
+  const [statistics, setStatistics] = useState<Statistics | null>(null)
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [chartLoading, setChartLoading] = useState(true)
+
+  useEffect(() => {
+    // Fetch statistics data
+    fetchStatistics().then(data => {
+      setStatistics(data)
+      setLoading(false)
+    })
+
+    // Fetch chart data
+    fetchChartData().then(data => {
+      setChartData(data)
+      setChartLoading(false)
+    })
+  }, [])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ar-SA', {
+      style: 'currency',
+      currency: 'SAR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('ar-SA').format(num)
+  }
 
   return (
     <div className="space-y-8">
@@ -259,7 +273,7 @@ export default function StatisticsPage() {
             <div className="flex flex-col items-center justify-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <span className="text-muted-foreground text-sm mt-2">جاري تحميل البيانات...</span>
-            </span>
+            </div>
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
