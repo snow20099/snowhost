@@ -137,4 +137,55 @@ model UserSubscription {
   id                  String             @id @default(cuid())
   userId              String             @map("user_id")
   planName            String             @map("plan_name")
-  planPrice           Decimal            @map("plan_price") @db.Decimal(10
+  planPrice           Decimal            @map("plan_price") @db.Decimal(10,2)
+  currency            String             @default("SAR")
+  status              SubscriptionStatus @default(ACTIVE)
+  billingCycle        BillingCycle       @default(MONTHLY) @map("billing_cycle")
+  currentPeriodStart  DateTime           @map("current_period_start")
+  currentPeriodEnd    DateTime           @map("current_period_end")
+  nextBillingDate     DateTime?          @map("next_billing_date")
+  subscriptionId      String?            @map("subscription_id")
+  gateway             String?
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  cancelledAt         DateTime?          @map("cancelled_at")
+  
+  // Relations
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("user_subscriptions")
+}
+
+// Enums
+enum ServerStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ERROR
+  RESTARTING
+  DELETED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  SUSPENDED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
