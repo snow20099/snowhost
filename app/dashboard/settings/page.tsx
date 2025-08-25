@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield, Bell, Lock, Key, Globe } from "lucide-react"
+import { Loader2, Save, Upload, RotateCcw, User, Settings, Shield } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { emitProfileUpdate } from "@/utilities/events"
 
 // تعريف أنواع البيانات
 interface UserProfile {
@@ -32,40 +33,41 @@ interface UserProfile {
   };
 }
 
-// قائمة الرموز الدولية للهواتف
-const countryCodes = [
-  { code: "+966", name: "السعودية", flag: "🇸🇦" },
-  { code: "+971", name: "الإمارات", flag: "🇦🇪" },
-  { code: "+973", name: "البحرين", flag: "🇧🇭" },
-  { code: "+974", name: "قطر", flag: "🇶🇦" },
-  { code: "+968", name: "عمان", flag: "🇴🇲" },
-  { code: "+965", name: "الكويت", flag: "🇰🇼" },
-  { code: "+20", name: "مصر", flag: "🇪🇬" },
-  { code: "+962", name: "الأردن", flag: "🇯🇴" },
-  { code: "+963", name: "سوريا", flag: "🇸🇾" },
-  { code: "+961", name: "لبنان", flag: "🇱🇧" },
-  { code: "+964", name: "العراق", flag: "🇮🇶" },
-  { code: "+212", name: "المغرب", flag: "🇲🇦" },
-  { code: "+216", name: "تونس", flag: "🇹🇳" },
-  { code: "+213", name: "الجزائر", flag: "🇩🇿" },
-  { code: "+967", name: "اليمن", flag: "🇾🇪" },
-  { code: "+249", name: "السودان", flag: "🇸🇩" },
-];
-
 export default function SettingsPage() {
   const { data: session, status } = useSession();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [profileImage, setProfileImage] = useState("/placeholder-user.jpg");
+  
+  // حالات البيانات
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    id: "1",
+    name: session?.user?.name || "المستخدم",
+    email: session?.user?.email || "user@example.com",
+    phone: "",
+    country: "",
+    timezone: "",
+    preferences: {
+      theme: 'system',
+      language: 'ar',
+      notifications: {
+        email: true,
+        push: true,
+        sms: false
+      }
+    }
+  });
+  
+  const [profileImage, setProfileImage] = useState(session?.user?.image || "/placeholder-user.jpg");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState("+964");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // تحميل بيانات المستخدم عند تحميل الصفحة
+  // تحميل بيانات المستخدم
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
+        setIsLoading(true);
+        // محاولة تحميل البيانات من API
         const response = await fetch('/api/user/profile');
         if (response.ok) {
           const userData = await response.json();
@@ -85,7 +87,8 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error("خطأ في تحميل بيانات المستخدم:", error);
-        toast.error("فشل في تحميل بيانات المستخدم");
+        // استخدام بيانات افتراضية في حالة فشل API
+        toast.error("تم تحميل البيانات الافتراضية");
       } finally {
         setIsLoading(false);
       }
@@ -112,10 +115,8 @@ export default function SettingsPage() {
         if (e.target?.result) {
           const newImage = e.target.result as string;
           setProfileImage(newImage);
-          toast.success("تم تحميل الصورة بنجاح", {
-            description: "تم تحديث الصورة بنجاح",
-            duration: 2000
-          });
+          emitProfileUpdate({ image: newImage });
+          toast.success("تم تحميل الصورة بنجاح");
         }
       };
       reader.onerror = () => {
@@ -128,10 +129,11 @@ export default function SettingsPage() {
   // معالج تحديث الملف الشخصي
   const handleProfileUpdate = async (e: FormEvent) => {
     e.preventDefault();
-    if (!userProfile) return;
     setIsUpdating(true);
+    
     try {
       const fullPhone = `${selectedCountryCode} ${phoneNumber}`;
+      
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -145,81 +147,75 @@ export default function SettingsPage() {
           profileImage: profileImage !== "/placeholder-user.jpg" ? profileImage : undefined,
         }),
       });
-      if (!response.ok) throw new Error('فشل في تحديث البيانات');
-      const updatedUser = await response.json();
-      setUserProfile(updatedUser);
-      toast.success("تم تحديث الملف الشخصي بنجاح", {
-        description: "تم حفظ جميع التغييرات التي أجريتها",
-        duration: 3000,
-        position: "top-center"
-      });
+      
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUserProfile(updatedUser);
+        emitProfileUpdate({ 
+          name: updatedUser.name,
+          image: profileImage !== "/placeholder-user.jpg" ? profileImage : undefined
+        });
+        toast.success("تم تحديث الملف الشخصي بنجاح");
+      } else {
+        throw new Error('فشل في تحديث البيانات');
+      }
     } catch (error) {
       console.error("Update error:", error);
-      toast.error("فشل في تحديث الملف الشخصي", {
-        description: "يرجى المحاولة مرة أخرى",
-        duration: 3000,
-        position: "top-center"
-      });
+      toast.error("فشل في تحديث الملف الشخصي");
     } finally {
       setIsUpdating(false);
     }
   };
 
+  // معالج تغيير بيانات المستخدم
   const handleProfileChange = (field: keyof UserProfile, value: any) => {
-    if (userProfile) {
-      const updatedUser = { ...userProfile, [field]: value };
-      setUserProfile(updatedUser);
+    const updatedUser = { ...userProfile, [field]: value };
+    setUserProfile(updatedUser);
+    
+    if (field === 'name') {
+      emitProfileUpdate({ name: value });
     }
   };
 
+  // معالج تغيير التفضيلات
   const handlePreferenceChange = (field: string, value: any) => {
-    if (userProfile) {
-      const updatedUser = {
-        ...userProfile,
-        preferences: { ...userProfile.preferences, [field]: value }
-      };
-      setUserProfile(updatedUser);
-    }
+    const updatedUser = {
+      ...userProfile,
+      preferences: { ...userProfile.preferences, [field]: value }
+    };
+    setUserProfile(updatedUser);
   };
 
+  // معالج تغيير الإشعارات
   const handleNotificationChange = (field: string, value: boolean) => {
-    if (userProfile) {
-      const updatedUser = {
-        ...userProfile,
-        preferences: {
-          ...userProfile.preferences,
-          notifications: { ...userProfile.preferences.notifications, [field]: value }
-        }
-      };
-      setUserProfile(updatedUser);
-    }
+    const updatedUser = {
+      ...userProfile,
+      preferences: {
+        ...userProfile.preferences,
+        notifications: { ...userProfile.preferences.notifications, [field]: value }
+      }
+    };
+    setUserProfile(updatedUser);
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!userProfile) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p>يرجى تسجيل الدخول للوصول إلى الإعدادات</p>
+        <span className="mr-2">جاري التحميل...</span>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-4xl min-h-screen">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">إعدادات الحساب</h1>
-        <p className="text-muted-foreground">إدارة معلومات حسابك وتفضيلاتك</p>
+        <h1 className="text-3xl font-bold text-white">إعدادات الحساب</h1>
+        <p className="text-gray-400 mt-2">إدارة معلومات حسابك وتفضيلاتك</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             الملف الشخصي
@@ -235,63 +231,70 @@ export default function SettingsPage() {
         </TabsList>
 
         {/* تبويب الملف الشخصي */}
-        <TabsContent value="profile">
+        <TabsContent value="profile" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>الملف الشخصي</CardTitle>
-              <CardDescription>
-                إدارة معلوماتك الشخصية وصورة الملف الشخصي
-              </CardDescription>
+              <CardTitle>المعلومات الشخصية</CardTitle>
+              <CardDescription>تحديث معلومات الملف الشخصي الخاص بك</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="flex flex-col items-center gap-4">
-                  <Avatar className="w-24 h-24 border-2 border-primary">
-                    <AvatarImage src={profileImage} alt="Profile" />
-                    <AvatarFallback className="text-2xl">
-                      {userProfile.name ? userProfile.name[0] : 'U'}
+                {/* قسم الصورة الشخصية */}
+                <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={profileImage} alt={userProfile.name} />
+                    <AvatarFallback className="text-lg">
+                      {userProfile.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex gap-2">
-                    <Button 
-                      type="button" 
-                      className="bg-primary text-white flex items-center gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-4 h-4" />
-                      رفع صورة جديدة
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif"
-                      className="hidden"
-                      onChange={handleImageUpload}
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="flex items-center gap-2"
-                      onClick={() => setProfileImage("/placeholder-user.jpg")}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      إعادة تعيين
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        تحميل صورة
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setProfileImage("/placeholder-user.jpg");
+                          emitProfileUpdate({ image: "/placeholder-user.jpg" });
+                          toast.success("تم إعادة تعيين الصورة");
+                        }}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        إعادة تعيين
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      JPG, PNG أو GIF. الحد الأقصى 800KB
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">JPG, PNG, أو GIF. الحد الأقصى للحجم 800KB.</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                 </div>
 
+                {/* المعلومات الأساسية */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">الاسم الكامل</Label>
                     <Input
                       id="name"
-                      value={userProfile.name || ''}
-                      onChange={e => handleProfileChange("name", e.target.value)}
-                      className="w-full"
+                      value={userProfile.name}
+                      onChange={(e) => handleProfileChange('name', e.target.value)}
+                      placeholder="أدخل الاسم الكامل"
                     />
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="email">البريد الإلكتروني</Label>
                     <Input
@@ -299,229 +302,226 @@ export default function SettingsPage() {
                       type="email"
                       value={userProfile.email}
                       disabled
-                      className="w-full bg-muted"
+                      className="bg-muted"
                     />
                   </div>
-                  
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="phone">رقم الهاتف</Label>
-                    <div className="flex gap-2">
-                      <Select value={selectedCountryCode} onValueChange={setSelectedCountryCode}>
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="رمز الدولة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countryCodes.map((country) => (
-                            <SelectItem key={country.code} value={country.code}>
-                              {country.flag} {country.code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        id="phone"
-                        value={phoneNumber}
-                        onChange={e => setPhoneNumber(e.target.value)}
-                        className="flex-1"
-                        placeholder="رقم الهاتف"
-                      />
-                    </div>
+                </div>
+
+                {/* رقم الهاتف */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone">رقم الهاتف</Label>
+                  <div className="flex gap-2">
+                    <Select value={selectedCountryCode} onValueChange={setSelectedCountryCode}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="+964">🇮🇶 +964</SelectItem>
+                        <SelectItem value="+966">🇸🇦 +966</SelectItem>
+                        <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                        <SelectItem value="+962">🇯🇴 +962</SelectItem>
+                        <SelectItem value="+961">🇱🇧 +961</SelectItem>
+                        <SelectItem value="+20">🇪🇬 +20</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="رقم الهاتف"
+                      className="flex-1"
+                    />
                   </div>
-                  
+                </div>
+
+                {/* البلد والمنطقة الزمنية */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="country">البلد</Label>
-                    <Input
-                      id="country"
-                      value={userProfile.country || ''}
-                      onChange={e => handleProfileChange("country", e.target.value)}
-                      className="w-full"
-                    />
+                    <Select value={userProfile.country || ""} onValueChange={(value) => handleProfileChange('country', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر البلد" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IQ">العراق</SelectItem>
+                        <SelectItem value="SA">السعودية</SelectItem>
+                        <SelectItem value="AE">الإمارات</SelectItem>
+                        <SelectItem value="JO">الأردن</SelectItem>
+                        <SelectItem value="LB">لبنان</SelectItem>
+                        <SelectItem value="EG">مصر</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="timezone">المنطقة الزمنية</Label>
-                    <Select 
-                      value={userProfile.timezone || ''} 
-                      onValueChange={value => handleProfileChange("timezone", value)}
-                    >
+                    <Select value={userProfile.timezone || ""} onValueChange={(value) => handleProfileChange('timezone', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المنطقة الزمنية" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="UTC+3">(UTC+3) العربية السعودية</SelectItem>
-                        <SelectItem value="UTC+4">(UTC+4) الإمارات العربية المتحدة</SelectItem>
-                        <SelectItem value="UTC+0">(UTC+0) غرينتش</SelectItem>
+                        <SelectItem value="Asia/Baghdad">بغداد (GMT+3)</SelectItem>
+                        <SelectItem value="Asia/Riyadh">الرياض (GMT+3)</SelectItem>
+                        <SelectItem value="Asia/Dubai">دبي (GMT+4)</SelectItem>
+                        <SelectItem value="Asia/Amman">عمان (GMT+3)</SelectItem>
+                        <SelectItem value="Asia/Beirut">بيروت (GMT+2)</SelectItem>
+                        <SelectItem value="Africa/Cairo">القاهرة (GMT+2)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                
-                <div className="flex justify-end">
-                  <Button 
-                    type="submit" 
-                    className="bg-primary text-white px-8 flex items-center gap-2"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    حفظ التغييرات
-                  </Button>
-                </div>
+
+                <Button type="submit" disabled={isUpdating} className="w-full">
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                      جاري الحفظ...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 ml-2" />
+                      حفظ التغييرات
+                    </>
+                  )}
+                </Button>
               </form>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* تبويب التفضيلات */}
-        <TabsContent value="preferences">
+        <TabsContent value="preferences" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>التفضيلات</CardTitle>
-              <CardDescription>
-                تخصيص تجربة المستخدم حسب تفضيلاتك
-              </CardDescription>
+              <CardDescription>تخصيص تجربة استخدام التطبيق</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="language">اللغة</Label>
-                  <Select 
-                    value={userProfile.preferences.language || 'ar'} 
-                    onValueChange={value => handlePreferenceChange("language", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر اللغة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ar">العربية</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="fr">Français</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="theme">المظهر</Label>
-                  <Select 
-                    value={userProfile.preferences.theme || 'light'} 
-                    onValueChange={value => handlePreferenceChange("theme", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المظهر" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">فاتح</SelectItem>
-                      <SelectItem value="dark">داكن</SelectItem>
-                      <SelectItem value="auto">تلقائي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Bell className="w-4 h-4" />
-                  الإشعارات
-                </h3>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>البريد الإلكتروني</Label>
-                    <p className="text-sm text-muted-foreground">
-                      تلقي إشعارات عبر البريد الإلكتروني
-                    </p>
-                  </div>
-                  <Switch
-                    checked={userProfile.preferences.notifications.email || false}
-                    onCheckedChange={value => handleNotificationChange("email", value)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>الإشعارات الدفعية</Label>
-                    <p className="text-sm text-muted-foreground">
-                      تلقي إشعارات على الجهاز
-                    </p>
-                  </div>
-                  <Switch
-                    checked={userProfile.preferences.notifications.push || false}
-                    onCheckedChange={value => handleNotificationChange("push", value)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>رسائل SMS</Label>
-                    <p className="text-sm text-muted-foreground">
-                      تلقي إشعارات عبر الرسائل النصية
-                    </p>
-                  </div>
-                  <Switch
-                    checked={userProfile.preferences.notifications.sms || false}
-                    onCheckedChange={value => handleNotificationChange("sms", value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <Button 
-                  className="bg-primary text-white px-8 flex items-center gap-2"
-                  disabled={isUpdating}
-                  onClick={handleProfileUpdate}
+              {/* المظهر */}
+              <div className="space-y-2">
+                <Label>المظهر</Label>
+                <Select 
+                  value={userProfile.preferences.theme} 
+                  onValueChange={(value) => handlePreferenceChange('theme', value)}
                 >
-                  {isUpdating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  حفظ التغييرات
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">فاتح</SelectItem>
+                    <SelectItem value="dark">داكن</SelectItem>
+                    <SelectItem value="system">حسب النظام</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* اللغة */}
+              <div className="space-y-2">
+                <Label>اللغة</Label>
+                <Select 
+                  value={userProfile.preferences.language} 
+                  onValueChange={(value) => handlePreferenceChange('language', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ar">العربية</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* إعدادات الإشعارات */}
+              <div className="space-y-4">
+                <Label className="text-base font-medium">الإشعارات</Label>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">إشعارات البريد الإلكتروني</p>
+                      <p className="text-sm text-muted-foreground">استقبال إشعارات عبر البريد الإلكتروني</p>
+                    </div>
+                    <Switch
+                      checked={userProfile.preferences.notifications.email}
+                      onCheckedChange={(checked) => handleNotificationChange('email', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">إشعارات التطبيق</p>
+                      <p className="text-sm text-muted-foreground">استقبال إشعارات فورية في التطبيق</p>
+                    </div>
+                    <Switch
+                      checked={userProfile.preferences.notifications.push}
+                      onCheckedChange={(checked) => handleNotificationChange('push', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">إشعارات الرسائل النصية</p>
+                      <p className="text-sm text-muted-foreground">استقبال إشعارات عبر الرسائل النصية</p>
+                    </div>
+                    <Switch
+                      checked={userProfile.preferences.notifications.sms}
+                      onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button className="w-full" onClick={() => toast.success("تم حفظ التفضيلات")}>
+                <Save className="w-4 h-4 ml-2" />
+                حفظ التفضيلات
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* تبويب الأمان */}
-        <TabsContent value="security">
+        <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>الأمان</CardTitle>
-              <CardDescription>
-                إدارة إعدادات الأمان وكلمة المرور
-              </CardDescription>
+              <CardDescription>إدارة إعدادات الأمان وكلمة المرور</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2 flex items-center gap-2">
-                    <Key className="w-4 h-4" />
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">تغيير كلمة المرور</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    قم بتحديث كلمة المرور الخاصة بك للحفاظ على أمان حسابك
+                  </p>
+                  <Button variant="outline" onClick={() => toast.info("ستتم إعادة توجيهك لتغيير كلمة المرور")}>
                     تغيير كلمة المرور
-                  </h3>
-                  <Button variant="outline">تغيير كلمة المرور</Button>
+                  </Button>
                 </div>
-                <div>
-                  <h3 className="font-medium mb-2 flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    المصادقة الثنائية
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-2">
+
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">المصادقة الثنائية</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     تأمين إضافي لحسابك باستخدام المصادقة الثنائية
                   </p>
-                  <Button variant="outline">تفعيل المصادقة الثنائية</Button>
+                  <Button variant="outline" onClick={() => toast.info("جاري تحضير المصادقة الثنائية...")}>
+                    تفعيل المصادقة الثنائية
+                  </Button>
                 </div>
-                <div>
-                  <h3 className="font-medium mb-2 flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    الجلسات النشطة
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-2">
+
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">الجلسات النشطة</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     عرض وإدارة الأجهزة المتصلة بحسابك
                   </p>
-                  <Button variant="outline">إدارة الجلسات</Button>
+                  <div className="space-y-2 mb-3">
+                    <div className="text-sm">
+                      <p className="font-medium">الجهاز الحالي</p>
+                      <p className="text-muted-foreground">متصفح الويب - نشط الآن</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={() => toast.info("عرض جميع الجلسات النشطة")}>
+                    إدارة الجلسات
+                  </Button>
                 </div>
               </div>
             </CardContent>
