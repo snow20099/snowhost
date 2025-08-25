@@ -34,9 +34,9 @@ interface UserProfile {
 }
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession(); // إضافة update للجلسة
   
-  // حالات البيانات - بدون اعتماد على session في useState
+  // حالات البيانات
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: "1",
     name: "المستخدم",
@@ -60,18 +60,17 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState("+964");
-  const [dataLoaded, setDataLoaded] = useState(false); // متغير لتتبع تحميل البيانات
+  const [dataLoaded, setDataLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // تحميل بيانات المستخدم مرة واحدة فقط
+  // تحميل بيانات المستخدم
   useEffect(() => {
-    if (dataLoaded) return; // منع إعادة التحميل
+    if (dataLoaded) return;
 
     const fetchUserProfile = async () => {
       try {
         setIsLoading(true);
         
-        // استخدام بيانات الجلسة إذا كانت متوفرة
         if (session?.user) {
           setUserProfile(prev => ({
             ...prev,
@@ -81,7 +80,6 @@ export default function SettingsPage() {
           setProfileImage(session.user.image || "/placeholder-user.jpg");
         }
 
-        // محاولة تحميل البيانات من API
         try {
           const response = await fetch('/api/user/profile');
           if (response.ok) {
@@ -107,17 +105,17 @@ export default function SettingsPage() {
         console.error("خطأ في تحميل بيانات المستخدم:", error);
       } finally {
         setIsLoading(false);
-        setDataLoaded(true); // تأكيد أن البيانات تم تحميلها
+        setDataLoaded(true);
       }
     };
 
     if (status !== "loading") {
       fetchUserProfile();
     }
-  }, [status, session, dataLoaded]); // إضافة dataLoaded للتحكم
+  }, [status, session, dataLoaded]);
 
-  // معالج تحميل الصورة - بدون إعادة تحميل
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  // معالج تحميل الصورة - محسّن
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 800 * 1024) {
@@ -126,17 +124,41 @@ export default function SettingsPage() {
       }
       
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         if (e.target?.result) {
           const newImage = e.target.result as string;
           setProfileImage(newImage);
-          // إرسال التحديث بدون إعادة تحميل الصفحة
+          
+          // حفظ الصورة فوراً في الخادم
           try {
-            emitProfileUpdate({ image: newImage });
+            const response = await fetch('/api/user/profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                profileImage: newImage,
+              }),
+            });
+
+            if (response.ok) {
+              // تحديث الجلسة
+              await update({
+                ...session,
+                user: {
+                  ...session?.user,
+                  image: newImage
+                }
+              });
+              
+              // إرسال التحديث للمكونات الأخرى
+              emitProfileUpdate({ image: newImage });
+              toast.success("تم تحميل الصورة بنجاح");
+            }
           } catch (error) {
-            console.log("حدث خطأ في إرسال التحديث:", error);
+            console.error("فشل في حفظ الصورة:", error);
+            toast.error("فشل في حفظ الصورة");
+            // إعادة الصورة السابقة في حالة الفشل
+            setProfileImage(session?.user?.image || "/placeholder-user.jpg");
           }
-          toast.success("تم تحميل الصورة بنجاح");
         }
       };
       reader.onerror = () => {
@@ -145,13 +167,12 @@ export default function SettingsPage() {
       reader.readAsDataURL(file);
     }
     
-    // إعادة تعيين قيمة input لتجنب مشاكل إعادة التحميل
     if (e.target) {
       e.target.value = '';
     }
   };
 
-  // معالج تحديث الملف الشخصي
+  // معالج تحديث الملف الشخصي - محسّن
   const handleProfileUpdate = async (e: FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
@@ -176,11 +197,30 @@ export default function SettingsPage() {
       if (response.ok) {
         const updatedUser = await response.json();
         setUserProfile(updatedUser);
+        
+        // تحديث الجلسة بالبيانات الجديدة
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: updatedUser.name,
+            image: profileImage !== "/placeholder-user.jpg" ? profileImage : session?.user?.image
+          }
+        });
+        
+        // إرسال التحديث للمكونات الأخرى
         emitProfileUpdate({ 
           name: updatedUser.name,
           image: profileImage !== "/placeholder-user.jpg" ? profileImage : undefined
         });
+        
         toast.success("تم تحديث الملف الشخصي بنجاح");
+        
+        // إعادة تحميل الصفحة بعد ثانيتين لضمان تحديث جميع المكونات
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+        
       } else {
         throw new Error('فشل في تحديث البيانات');
       }
@@ -192,22 +232,13 @@ export default function SettingsPage() {
     }
   };
 
-  // معالج تغيير بيانات المستخدم - بدون إعادة تحميل
+  // معالج تغيير بيانات المستخدم - محسّن
   const handleProfileChange = (field: keyof UserProfile, value: any) => {
     const updatedUser = { ...userProfile, [field]: value };
     setUserProfile(updatedUser);
-    
-    // إرسال تحديث فوري للاسم بدون إعادة تحميل
-    if (field === 'name') {
-      try {
-        emitProfileUpdate({ name: value });
-      } catch (error) {
-        console.log("حدث خطأ في إرسال تحديث الاسم:", error);
-      }
-    }
   };
 
-  // معالج تغيير التفضيلات - محسّن
+  // معالج تغيير التفضيلات
   const handlePreferenceChange = (field: string, value: any) => {
     const updatedUser = {
       ...userProfile,
@@ -216,7 +247,7 @@ export default function SettingsPage() {
     setUserProfile(updatedUser);
   };
 
-  // معالج تغيير الإشعارات - محسّن
+  // معالج تغيير الإشعارات
   const handleNotificationChange = (field: string, value: boolean) => {
     const updatedUser = {
       ...userProfile,
@@ -226,6 +257,39 @@ export default function SettingsPage() {
       }
     };
     setUserProfile(updatedUser);
+  };
+
+  // معالج إعادة تعيين الصورة - محسّن
+  const handleResetImage = async () => {
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileImage: null, // إرسال null لحذف الصورة
+        }),
+      });
+
+      if (response.ok) {
+        setProfileImage("/placeholder-user.jpg");
+        
+        // تحديث الجلسة
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            image: "/placeholder-user.jpg"
+          }
+        });
+        
+        // إرسال التحديث للمكونات الأخرى
+        emitProfileUpdate({ image: "/placeholder-user.jpg" });
+        toast.success("تم إعادة تعيين الصورة");
+      }
+    } catch (error) {
+      console.error("فشل في إعادة تعيين الصورة:", error);
+      toast.error("فشل في إعادة تعيين الصورة");
+    }
   };
 
   if (isLoading) {
@@ -291,16 +355,7 @@ export default function SettingsPage() {
                       <Button 
                         type="button" 
                         variant="outline" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setProfileImage("/placeholder-user.jpg");
-                          try {
-                            emitProfileUpdate({ image: "/placeholder-user.jpg" });
-                          } catch (error) {
-                            console.log("حدث خطأ في إرسال التحديث:", error);
-                          }
-                          toast.success("تم إعادة تعيين الصورة");
-                        }}
+                        onClick={handleResetImage}
                       >
                         <RotateCcw className="w-4 h-4" />
                         إعادة تعيين
