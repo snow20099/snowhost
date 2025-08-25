@@ -140,18 +140,26 @@ export default function SettingsPage() {
             });
 
             if (response.ok) {
+              const updatedUser = await response.json();
+              
               // تحديث الجلسة
               await update({
                 ...session,
                 user: {
                   ...session?.user,
-                  image: newImage
+                  name: updatedUser.name,
+                  image: updatedUser.profileImage
                 }
               });
               
               // إرسال التحديث للمكونات الأخرى
-              emitProfileUpdate({ image: newImage });
+              emitProfileUpdate({ 
+                name: updatedUser.name,
+                image: updatedUser.profileImage 
+              });
               toast.success("تم تحميل الصورة بنجاح");
+            } else {
+              throw new Error('فشل في حفظ الصورة');
             }
           } catch (error) {
             console.error("فشل في حفظ الصورة:", error);
@@ -271,20 +279,25 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        setProfileImage("/placeholder-user.jpg");
+        const updatedUser = await response.json();
+        setProfileImage(updatedUser.profileImage);
         
         // تحديث الجلسة
         await update({
           ...session,
           user: {
             ...session?.user,
-            image: "/placeholder-user.jpg"
+            image: updatedUser.profileImage
           }
         });
         
         // إرسال التحديث للمكونات الأخرى
-        emitProfileUpdate({ image: "/placeholder-user.jpg" });
+        emitProfileUpdate({ 
+          image: updatedUser.profileImage 
+        });
         toast.success("تم إعادة تعيين الصورة");
+      } else {
+        throw new Error('فشل في إعادة تعيين الصورة');
       }
     } catch (error) {
       console.error("فشل في إعادة تعيين الصورة:", error);
