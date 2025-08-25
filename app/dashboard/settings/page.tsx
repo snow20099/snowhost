@@ -36,11 +36,11 @@ interface UserProfile {
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   
-  // حالات البيانات
+  // حالات البيانات - بدون اعتماد على session في useState
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: "1",
-    name: session?.user?.name || "المستخدم",
-    email: session?.user?.email || "user@example.com",
+    name: "المستخدم",
+    email: "user@example.com",
     phone: "",
     country: "",
     timezone: "",
@@ -55,53 +55,68 @@ export default function SettingsPage() {
     }
   });
   
-  const [profileImage, setProfileImage] = useState(session?.user?.image || "/placeholder-user.jpg");
+  const [profileImage, setProfileImage] = useState("/placeholder-user.jpg");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState("+964");
+  const [dataLoaded, setDataLoaded] = useState(false); // متغير لتتبع تحميل البيانات
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // تحميل بيانات المستخدم
+  // تحميل بيانات المستخدم مرة واحدة فقط
   useEffect(() => {
+    if (dataLoaded) return; // منع إعادة التحميل
+
     const fetchUserProfile = async () => {
       try {
         setIsLoading(true);
+        
+        // استخدام بيانات الجلسة إذا كانت متوفرة
+        if (session?.user) {
+          setUserProfile(prev => ({
+            ...prev,
+            name: session.user.name || "المستخدم",
+            email: session.user.email || "user@example.com"
+          }));
+          setProfileImage(session.user.image || "/placeholder-user.jpg");
+        }
+
         // محاولة تحميل البيانات من API
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const userData = await response.json();
-          setUserProfile(userData);
-          if (userData.phone) {
-            const phoneMatch = userData.phone.match(/^(\+\d{1,4})\s(.+)$/);
-            if (phoneMatch) {
-              setSelectedCountryCode(phoneMatch[1]);
-              setPhoneNumber(phoneMatch[2]);
-            } else {
-              setPhoneNumber(userData.phone);
+        try {
+          const response = await fetch('/api/user/profile');
+          if (response.ok) {
+            const userData = await response.json();
+            setUserProfile(userData);
+            if (userData.phone) {
+              const phoneMatch = userData.phone.match(/^(\+\d{1,4})\s(.+)$/);
+              if (phoneMatch) {
+                setSelectedCountryCode(phoneMatch[1]);
+                setPhoneNumber(phoneMatch[2]);
+              } else {
+                setPhoneNumber(userData.phone);
+              }
+            }
+            if (userData.profileImage) {
+              setProfileImage(userData.profileImage);
             }
           }
-          if (userData.profileImage) {
-            setProfileImage(userData.profileImage);
-          }
+        } catch (apiError) {
+          console.log("API غير متوفر، استخدام البيانات الافتراضية");
         }
       } catch (error) {
         console.error("خطأ في تحميل بيانات المستخدم:", error);
-        // استخدام بيانات افتراضية في حالة فشل API
-        toast.error("تم تحميل البيانات الافتراضية");
       } finally {
         setIsLoading(false);
+        setDataLoaded(true); // تأكيد أن البيانات تم تحميلها
       }
     };
 
-    if (status === "authenticated") {
+    if (status !== "loading") {
       fetchUserProfile();
-    } else if (status === "unauthenticated") {
-      setIsLoading(false);
     }
-  }, [status]);
+  }, [status, session, dataLoaded]); // إضافة dataLoaded للتحكم
 
-  // معالج تحميل الصورة
+  // معالج تحميل الصورة - بدون إعادة تحميل
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -115,7 +130,12 @@ export default function SettingsPage() {
         if (e.target?.result) {
           const newImage = e.target.result as string;
           setProfileImage(newImage);
-          emitProfileUpdate({ image: newImage });
+          // إرسال التحديث بدون إعادة تحميل الصفحة
+          try {
+            emitProfileUpdate({ image: newImage });
+          } catch (error) {
+            console.log("حدث خطأ في إرسال التحديث:", error);
+          }
           toast.success("تم تحميل الصورة بنجاح");
         }
       };
@@ -123,6 +143,11 @@ export default function SettingsPage() {
         toast.error("فشل في تحميل الصورة");
       };
       reader.readAsDataURL(file);
+    }
+    
+    // إعادة تعيين قيمة input لتجنب مشاكل إعادة التحميل
+    if (e.target) {
+      e.target.value = '';
     }
   };
 
@@ -167,17 +192,22 @@ export default function SettingsPage() {
     }
   };
 
-  // معالج تغيير بيانات المستخدم
+  // معالج تغيير بيانات المستخدم - بدون إعادة تحميل
   const handleProfileChange = (field: keyof UserProfile, value: any) => {
     const updatedUser = { ...userProfile, [field]: value };
     setUserProfile(updatedUser);
     
+    // إرسال تحديث فوري للاسم بدون إعادة تحميل
     if (field === 'name') {
-      emitProfileUpdate({ name: value });
+      try {
+        emitProfileUpdate({ name: value });
+      } catch (error) {
+        console.log("حدث خطأ في إرسال تحديث الاسم:", error);
+      }
     }
   };
 
-  // معالج تغيير التفضيلات
+  // معالج تغيير التفضيلات - محسّن
   const handlePreferenceChange = (field: string, value: any) => {
     const updatedUser = {
       ...userProfile,
@@ -186,7 +216,7 @@ export default function SettingsPage() {
     setUserProfile(updatedUser);
   };
 
-  // معالج تغيير الإشعارات
+  // معالج تغيير الإشعارات - محسّن
   const handleNotificationChange = (field: string, value: boolean) => {
     const updatedUser = {
       ...userProfile,
@@ -261,9 +291,14 @@ export default function SettingsPage() {
                       <Button 
                         type="button" 
                         variant="outline" 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
                           setProfileImage("/placeholder-user.jpg");
-                          emitProfileUpdate({ image: "/placeholder-user.jpg" });
+                          try {
+                            emitProfileUpdate({ image: "/placeholder-user.jpg" });
+                          } catch (error) {
+                            console.log("حدث خطأ في إرسال التحديث:", error);
+                          }
                           toast.success("تم إعادة تعيين الصورة");
                         }}
                       >
