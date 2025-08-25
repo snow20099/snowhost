@@ -33,8 +33,6 @@ import {
   Settings,
   CreditCard,
   HardDrive,
-  Globe,
-  Shield,
   LogOut,
   Bell,
   ChevronDown,
@@ -109,30 +107,6 @@ export default function DashboardLayout({
                       <Link href="/dashboard/services/gaming">
                         <Server className="h-4 w-4" />
                         <span>Gaming Servers</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/services/vps"}>
-                      <Link href="/dashboard/services/vps">
-                        <HardDrive className="h-4 w-4" />
-                        <span>VPS</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/services/vds"}>
-                      <Link href="/dashboard/services/vds">
-                        <Shield className="h-4 w-4" />
-                        <span>VDS</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/services/web"}>
-                      <Link href="/dashboard/services/web">
-                        <Globe className="h-4 w-4" />
-                        <span>Web Hosting</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
