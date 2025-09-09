@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    
+    /* Font variables */
+    --font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-poppins: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-jetbrains-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --font-tajawal: 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    
+    /* Snow theme colors */
+    --snow-light: 210 40% 98%;
+    --snow-medium: 210 40% 96%;
+    --snow-dark: 210 40% 94%;
+    --ice-light: 200 100% 97%;
+    --ice-medium: 200 100% 95%;
+    --ice-dark: 200 100% 93%;
+    --frost: 200 100% 99%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    
+    /* Snow theme colors for dark mode */
+    --snow-light: 220 13% 18%;
+    --snow-medium: 220 13% 15%;
+    --snow-dark: 220 13% 12%;
+    --ice-light: 220 13% 20%;
+    --ice-medium: 220 13% 17%;
+    --ice-dark: 220 13% 14%;
+    --frost: 220 13% 22%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+  h1, h2, h3, h4, h5, h6 {
+    font-feature-settings: "liga" 1, "kern" 1;
+    letter-spacing: -0.025em;
+}
+
+  html {
+    scroll-behavior: smooth;
+}
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-poppins);
+}
+
+  .font-mono {
+    font-family: var(--font-jetbrains-mono);
+}
+
+  .font-tajawal {
+    font-family: var(--font-tajawal);
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Selection styling */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
+}
+
+::-moz-selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
+}
+
+/* RTL support for Arabic */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Snow theme specific styles */
+.bg-gradient-snow {
+  background: linear-gradient(135deg, hsl(var(--snow-light)) 0%, hsl(var(--snow-medium)) 50%, hsl(var(--snow-dark)) 100%);
+}
+
+.bg-gradient-ice {
+  background: linear-gradient(135deg, hsl(var(--ice-light)) 0%, hsl(var(--ice-medium)) 50%, hsl(var(--ice-dark)) 100%);
+}
+
+.bg-gradient-frost {
+  background: linear-gradient(135deg, hsl(var(--frost)) 0%, hsl(var(--snow-light)) 100%);
+}
+
+.shadow-ice {
+  box-shadow: 0 4px 6px -1px hsl(var(--ice-light) / 0.1), 0 2px 4px -2px hsl(var(--ice-light) / 0.1);
+}
+
+.shadow-frost {
+  box-shadow: 0 10px 15px -3px hsl(var(--frost) / 0.1), 0 4px 6px -4px hsl(var(--frost) / 0.1);
+}
+
